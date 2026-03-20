@@ -94,28 +94,13 @@
 		}
 	});
 
-	function rotateImage() {
-		const newRotation = (rotation + 90) % 360;
-		const newIsRotated = newRotation === 90 || newRotation === 270;
-		const visualWidth = newIsRotated ? imageRenderedHeight : renderedWidth;
-		const visualHeight = newIsRotated ? renderedWidth : imageRenderedHeight;
-		let newZoom = zoomLevel;
-		if (visualWidth > 0 && visualHeight > 0) {
-			const fitWidthZoom = window.innerWidth / visualWidth;
-			const fitHeightZoom = window.innerHeight / visualHeight;
-			newZoom = Math.min(fitWidthZoom, fitHeightZoom);
-		}
-		rotation = newRotation;
-		translateX = 0;
-		translateY = 0;
-		zoomLevel = newZoom;
-	}
-
-	function fitImageToViewport() {
+	function fitImageToViewport(forcedRotation?: number) {
 		if (renderedWidth > 0 && naturalWidth > 0 && naturalHeight > 0) {
+			const rot = forcedRotation !== undefined ? forcedRotation : rotation;
+			const isRot = rot === 90 || rot === 270;
 			const imgH = renderedWidth * (naturalHeight / naturalWidth);
-			const fitWidth = isRotated ? imgH : renderedWidth;
-			const fitHeight = isRotated ? renderedWidth : imgH;
+			const fitWidth = isRot ? imgH : renderedWidth;
+			const fitHeight = isRot ? renderedWidth : imgH;
 			
 			const isDesktop = window.innerWidth >= 768;
 			const targetW = isDesktop ? 0.8 : 1.0;
@@ -125,6 +110,14 @@
 			const fitHeightZoom = (window.innerHeight * targetH) / fitHeight;
 			zoomLevel = Math.min(fitWidthZoom, fitHeightZoom);
 		}
+	}
+
+	function rotateImage() {
+		const newRotation = (rotation + 90) % 360;
+		fitImageToViewport(newRotation);
+		rotation = newRotation;
+		translateX = 0;
+		translateY = 0;
 	}
 
 	function handleMouseMoveVisibility(e: MouseEvent) {
