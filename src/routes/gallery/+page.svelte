@@ -7,6 +7,7 @@
 	import GalleryToolbar from './components/GalleryToolbar.svelte';
 	import GalleryGrid from './components/GalleryGrid.svelte';
 	import AudioModal from './components/AudioModal.svelte';
+	import PdfReader from './components/PdfReader.svelte';
 	import type { ImageFile } from './components/utils';
 
 	// ── Core state ────────────────────────────────────────────────────────────
@@ -25,7 +26,7 @@
 	let hasMore = $state(false);
 
 	let currentSort = $state('date_desc');
-	let mediaType = $state<'all'|'images'|'videos'|'audio'>('all');
+	let mediaType = $state<'all'|'images'|'videos'|'audio'|'pdf'>('all');
 	
 	/** Persistent drives list loaded ONCE on start */
 	let availableDrives = $state<any[]>([]);
@@ -34,6 +35,7 @@
 	let isImageModalOpen = $state(false);
 	let isVideoModalOpen = $state(false);
 	let isAudioModalOpen = $state(false);
+	let isPdfReaderOpen = $state(false);
 	let selectedImageIndex = $state(0);
 	let isWebtoonMode = $state(false);
 	let isFolderPickerOpen = $state(false);
@@ -42,7 +44,8 @@
 	let noImagesPopupTimer: any = null;
 
 	let webtoonCbzPath = $state('');
-	let pendingFile = $state<{ path: string, type: 'media' | 'cbz' } | null>(null);
+	let selectedPdfPath = $state('');
+	let pendingFile = $state<{ path: string, type: 'media' | 'cbz' | 'pdf' } | null>(null);
 	let lastOpenedFolder = $state<string | null>(null);
 	let lastOpenedFile = $state<string | null>(null);
 
@@ -86,13 +89,15 @@
 			if (item) lastOpenedFile = item.path;
 		} else if (isWebtoonMode && webtoonCbzPath) {
 			lastOpenedFile = webtoonCbzPath;
+		} else if (isPdfReaderOpen && selectedPdfPath) {
+			lastOpenedFile = selectedPdfPath;
 		}
 	});
 
 	// Trigger highlight when modals are closed
 	let wasModalOpen = false;
 	$effect(() => {
-		const isAnyModalOpen = isImageModalOpen || isVideoModalOpen || isWebtoonMode || isAudioModalOpen;
+		const isAnyModalOpen = isImageModalOpen || isVideoModalOpen || isWebtoonMode || isAudioModalOpen || isPdfReaderOpen;
 		if (wasModalOpen && !isAnyModalOpen && lastOpenedFile) {
 			const targetId = `item-${lastOpenedFile.replace(/[^a-zA-Z0-9]/g, '-')}`;
 			tick().then(() => {
@@ -245,6 +250,8 @@
 			if (pendingFile) {
 				if (pendingFile.type === 'cbz') {
 					openCbzInWebtoon(pendingFile.path);
+				} else if (pendingFile.type === 'pdf') {
+					openPdfReader(pendingFile.path);
 				} else {
 					const idx = loadedImages.findIndex((img) => img.path === pendingFile!.path);
 					if (idx !== -1) openModal(idx);
@@ -268,9 +275,16 @@
 			isVideoModalOpen = true;
 		} else if (img.isAudio) {
 			isAudioModalOpen = true;
+		} else if (img.isPdf) {
+			openPdfReader(img.path);
 		} else {
 			isImageModalOpen = true;
 		}
+	}
+
+	function openPdfReader(path: string) {
+		selectedPdfPath = path;
+		isPdfReaderOpen = true;
 	}
 
 	function openDir(dirPath: string, isGoingUp = false) {
@@ -417,6 +431,14 @@
 		{hasMore}
 		{currentPage}
 		{loadFolder}
+	/>
+{/if}
+
+{#if isPdfReaderOpen}
+	<PdfReader
+		bind:isPdfMode={isPdfReaderOpen}
+		pdfPath={selectedPdfPath}
+		onCloseCallback={() => selectedPdfPath = ''}
 	/>
 {/if}
 

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
-	import { isVideoFile, isZipFile, isCbzFile, handleImageError, formatBytes, formatDate, type ImageFile } from './utils';
+	import { isVideoFile, isZipFile, isCbzFile, isPdfFile, handleImageError, formatBytes, formatDate, type ImageFile } from './utils';
 
 	let {
 		loadedImages,
@@ -31,6 +31,7 @@
 	function handleCardClick(img: ImageFile, index: number) {
 		if (img.isDir) { onOpenDir(img.path); return; }
 		if (img.isCbz) { onOpenCbz(img.path); return; }
+		if (img.isPdf) { onOpenModal(index); return; }
 		onOpenModal(index);
 	}
 
@@ -83,7 +84,7 @@
 	{:else}
 		<div class="flex-1 flex flex-col items-center justify-center opacity-60 bg-base-200/50 rounded-xl border-2 border-dashed border-base-300 p-6 text-center">
 			<p class="text-lg font-medium">No files found in this directory</p>
-			<p class="text-xs mt-2">Supported formats: JPG, PNG, WEBP, GIF, AVIF, BMP, MP4, WEBM, CBZ</p>
+			<p class="text-xs mt-2">Supported formats: JPG, PNG, WEBP, GIF, AVIF, BMP, MP4, WEBM, CBZ, PDF</p>
 		</div>
 	{/if}
 {:else}
@@ -173,6 +174,17 @@
 								<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
 									<path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
 								</svg>
+							</div>
+						</div>
+					{:else if isPdfFile(img.name) || img.isPdf}
+						<div class="absolute inset-0 flex flex-col items-center justify-center bg-red-500/5 transition-colors group-hover:bg-red-500/10">
+							<svg xmlns="http://www.w3.org/2000/svg" class="w-1/3 h-1/3 text-red-600 opacity-20 group-hover:opacity-40 transition-all duration-500 group-hover:scale-110" fill="currentColor" viewBox="0 0 24 24">
+								<path d="M11.363 2c4.155 0 2.637 6 2.637 6s6-1.518 6 2.638v11.362c0 .552-.448 1-1 1h-13c-.552 0-1-.448-1-1v-19c0-.552.448-1 1-1h6.363zm4.137 17H8.5v-1h7v1zm0-2H8.5v-1h7v1zm0-2H8.5v-1h7v1zM15 2l5 5h-5V2z"/>
+							</svg>
+						</div>
+						<div class="absolute top-2 left-2 z-20">
+							<div class="bg-red-600/80 backdrop-blur-md px-2 py-0.5 rounded shadow-lg group-hover:bg-red-600 transition-colors">
+								<span class="text-[9px] font-black text-white tracking-widest uppercase">PDF</span>
 							</div>
 						</div>
 					{:else}

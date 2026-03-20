@@ -8,7 +8,8 @@
 export const ALLOWED_EXTENSIONS = new Set([
 	'.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif', '.bmp', 
 	'.mp4', '.webm', '.cbz', '.zip', '.heic', '.heif',
-	'.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac', '.opus', '.m4b'
+	'.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac', '.opus', '.m4b',
+	'.pdf'
 ]);
 
 /**
@@ -37,6 +38,7 @@ export function getContentType(ext: string): string {
 		case '.aac':  return 'audio/aac';
 		case '.opus': return 'audio/opus';
 		case '.m4b':  return 'audio/mp4';
+		case '.pdf':  return 'application/pdf';
 		default:      return 'application/octet-stream';
 	}
 }

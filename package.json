@@ -31,6 +31,7 @@
 		"@types/yauzl": "^2.10.3",
 		"heic-convert": "^2.1.0",
 		"heic2any": "^0.0.4",
+		"pdfjs-dist": "^5.5.207",
 		"sharp": "^0.34.5",
 		"yauzl": "^3.2.1",
 		"yauzl-promise": "^4.0.0"

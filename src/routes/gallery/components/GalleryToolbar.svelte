@@ -24,7 +24,7 @@
 		onOpenPicker: () => void;
 		onOpenWebtoon: () => void;
 		onGoUp: (dir: string) => void;
-		mediaType: 'all' | 'images' | 'videos' | 'audio';
+		mediaType: 'all' | 'images' | 'videos' | 'audio' | 'pdf';
 	} = $props();
 
 	const parentPath = $derived.by(() => {
@@ -125,6 +125,7 @@
 			<option value="images">Images</option>
 			<option value="videos">Videos</option>
 			<option value="audio">Audio</option>
+			<option value="pdf">PDF</option>
 		</select>
 
 		<!-- Sort Select -->

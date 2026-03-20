@@ -59,6 +59,10 @@ export function isZipFile(filename: string) {
 	return filename.toLowerCase().endsWith('.zip');
 }
 
+export function isPdfFile(filename: string) {
+	return filename.toLowerCase().endsWith('.pdf');
+}
+
 export function isCbzFile(filename: string) {
 	return filename.toLowerCase().endsWith('.cbz');
 }
@@ -86,4 +90,4 @@ export function formatDateTime(ms: number) {
 	return new Date(ms).toLocaleString();
 }
 
-export type ImageFile = { name: string; path: string; size: number; lastModified: number; isCbz?: boolean; isDir?: boolean; isVideo?: boolean; isAudio?: boolean; width?: number; height?: number };
+export type ImageFile = { name: string; path: string; size: number; lastModified: number; isCbz?: boolean; isDir?: boolean; isVideo?: boolean; isAudio?: boolean; isPdf?: boolean; width?: number; height?: number };

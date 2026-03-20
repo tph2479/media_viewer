@@ -59,14 +59,16 @@ export async function GET({ url }: RequestEvent) {
 						const isCbz = !isDir && (ext === '.cbz' || ext === '.zip');
 						const isVideo = !isDir && (ext === '.mp4' || ext === '.webm');
 						const isAudio = !isDir && ['.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac', '.opus', '.m4b'].includes(ext);
+						const isPdf = !isDir && ext === '.pdf';
 
-						let isAllowed = isDir || isCbz || isAudio || ALLOWED_EXTENSIONS.has(ext);
+						let isAllowed = isDir || isCbz || isAudio || isPdf || ALLOWED_EXTENSIONS.has(ext);
 
 						// Apply type filter
 						if (!isDir) {
 							if (typeFilter === 'images' && (isVideo || isAudio)) isAllowed = false;
 							if (typeFilter === 'videos' && !isVideo) isAllowed = false;
 							if (typeFilter === 'audio' && !isAudio) isAllowed = false;
+							if (typeFilter === 'pdf' && !isPdf) isAllowed = false;
 						}
 						
 						if (isAllowed) {
@@ -84,7 +86,8 @@ export async function GET({ url }: RequestEvent) {
 									isDir,
 									isCbz,
 									isVideo,
-									isAudio
+									isAudio,
+									isPdf
 								};
 							} catch (e) { return null; }
 						}
@@ -116,6 +119,7 @@ export async function GET({ url }: RequestEvent) {
 		const totalImagesCount = imageDetails.filter(item => !item.isDir && !item.isCbz && !item.isVideo && !item.isAudio).length;
 		const totalVideosCount = imageDetails.filter(item => item.isVideo).length;
 		const totalAudioCount = imageDetails.filter(item => item.isAudio).length;
+		const totalPdfCount = imageDetails.filter(item => item.isPdf).length;
 
 		// Final mapping of essential data only
 		const paginatedImages = imageDetails.slice(start, end).map(item => ({
@@ -125,6 +129,7 @@ export async function GET({ url }: RequestEvent) {
 			isCbz: item.isCbz,
 			isVideo: item.isVideo,
 			isAudio: item.isAudio,
+			isPdf: item.isPdf,
 			size: item.size,
 			lastModified: item.mtime
 		}));
@@ -139,6 +144,7 @@ export async function GET({ url }: RequestEvent) {
 			totalImages: totalImagesCount,
 			totalVideos: totalVideosCount,
 			totalAudio: totalAudioCount,
+			totalPdf: totalPdfCount,
 			page,
 			hasMore: end < totalCount
 		});
