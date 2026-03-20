@@ -63,6 +63,11 @@ export function isCbzFile(filename: string) {
 	return filename.toLowerCase().endsWith('.cbz');
 }
 
+export function isAudioFile(filename: string) {
+	const ext = filename.toLowerCase().split('.').pop();
+	return ['.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac', '.opus', '.m4b'].includes('.' + ext);
+}
+
 // Chuyển đổi bytes sang KB/MB
 export function formatBytes(bytes: number, decimals = 2) {
 	if (!+bytes) return '0 Bytes';
@@ -81,4 +86,4 @@ export function formatDateTime(ms: number) {
 	return new Date(ms).toLocaleString();
 }
 
-export type ImageFile = { name: string; path: string; size: number; lastModified: number; isCbz?: boolean; isDir?: boolean; isVideo?: boolean; width?: number; height?: number };
+export type ImageFile = { name: string; path: string; size: number; lastModified: number; isCbz?: boolean; isDir?: boolean; isVideo?: boolean; isAudio?: boolean; width?: number; height?: number };

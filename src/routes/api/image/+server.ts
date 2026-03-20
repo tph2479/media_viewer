@@ -23,7 +23,7 @@ if (!fs.existsSync(THUMB_CACHE_DIR)) {
 let activeGenerations = 0;
 const MAX_CONCURRENT_THUMBS = 4;
 const generationQueue: (() => void)[] = [];
-const ongoingGenerations = new Map<string, Promise<void>>();
+const ongoingGenerations = new Map<string, Promise<boolean>>();
 const HEIF_BRANDS = new Set(['heic', 'heix', 'hevc', 'mif1', 'msf1', 'heis', 'hevm', 'hevx', 'mif2', 'msf2', 'avif', 'avif', 'avis']);
 
 function isHeifBuffer(buf: Buffer): boolean {
@@ -135,15 +135,16 @@ async function ensureHeicConverted(inputPath: string, mtimeMs: number, logCtx: s
 		}
 	})();
 
+	// @ts-ignore
 	ongoingGenerations.set(outputPath, conversionPromise);
 	try { await conversionPromise; } finally { ongoingGenerations.delete(outputPath); }
 	return outputPath;
 }
 
-async function generateThumbnail(inputPath: string, outputPath: string, mtimeMs: number, logCtx: string, signal?: AbortSignal) {
-	if (ongoingGenerations.has(outputPath)) return ongoingGenerations.get(outputPath);
+async function generateThumbnail(inputPath: string, outputPath: string, mtimeMs: number, logCtx: string, signal?: AbortSignal): Promise<boolean> {
+	if (ongoingGenerations.has(outputPath)) return ongoingGenerations.get(outputPath) as Promise<boolean>;
 
-	const generationPromise = (async () => {
+	const generationPromise = (async (): Promise<boolean> => {
 		if (activeGenerations >= MAX_CONCURRENT_THUMBS) {
 			await new Promise<void>(resolve => {
 				const onAbort = () => {
@@ -155,14 +156,26 @@ async function generateThumbnail(inputPath: string, outputPath: string, mtimeMs:
 				generationQueue.push(resolve);
 			});
 		}
-		if (signal?.aborted) return;
+		if (signal?.aborted) return false;
 		activeGenerations++;
 
 		try {
 			const ext = path.extname(inputPath).toLowerCase();
-			if (['.mp4', '.webm'].includes(ext)) {
+			const isVideo = ['.mp4', '.webm'].includes(ext);
+			const isAudio = ['.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac', '.opus', '.m4b'].includes(ext);
+
+			if (isVideo || isAudio) {
 				await new Promise((resolve, reject) => {
-					const ffmpeg = spawn('ffmpeg', [
+					// For audio, we want first frame if it's there (cover art)
+					const ffmpegArgs = isAudio ? [
+						'-i', inputPath,
+						'-map', '0:v?',
+						'-frames:v', '1',
+						'-vf', 'scale=300:300:force_original_aspect_ratio=increase,crop=300:300',
+						'-c:v', 'webp',
+						'-y',
+						outputPath
+					] : [
 						'-ss', '00:00:01',
 						'-i', inputPath,
 						'-frames:v', '1',
@@ -173,7 +186,9 @@ async function generateThumbnail(inputPath: string, outputPath: string, mtimeMs:
 						'-q:v', '60',
 						'-y',
 						outputPath
-					], { stdio: 'ignore' });
+					];
+
+					const ffmpeg = spawn('ffmpeg', ffmpegArgs, { stdio: 'ignore' });
 
 					const killFFmpeg = () => { ffmpeg.kill('SIGKILL'); reject(new Error('Aborted')); };
 					if (signal) signal.addEventListener('abort', killFFmpeg, { once: true });
@@ -255,9 +270,10 @@ async function generateThumbnail(inputPath: string, outputPath: string, mtimeMs:
 				const mtime = mtimeMs / 1000;
 				await fsp.utimes(outputPath, atime, mtime).catch(() => { });
 			}
+			return true;
 		} catch (err) {
-			console.error(`[Thumbnail Error]`, err);
-			throw err;
+			console.error(`[Thumbnail Error] ${inputPath}:`, err);
+			return false;
 		} finally {
 			activeGenerations--;
 			if (generationQueue.length > 0) {
@@ -270,7 +286,11 @@ async function generateThumbnail(inputPath: string, outputPath: string, mtimeMs:
 	})();
 
 	ongoingGenerations.set(outputPath, generationPromise);
-	try { await generationPromise; } finally { ongoingGenerations.delete(outputPath); }
+	try {
+		return await generationPromise;
+	} finally {
+		ongoingGenerations.delete(outputPath);
+	}
 }
 
 export async function GET({ url, request }: RequestEvent) {
@@ -319,7 +339,10 @@ export async function GET({ url, request }: RequestEvent) {
 
 			if (isThumbnail) {
 				const thumbPath = await getThumbnailPath(normalizedPath, stat.mtimeMs);
-				if (!fs.existsSync(thumbPath)) await generateThumbnail(normalizedPath, thumbPath, stat.mtimeMs, rid, request.signal);
+				if (!fs.existsSync(thumbPath)) {
+					const success = await generateThumbnail(absolutePath, thumbPath, stat.mtimeMs, rid, request.signal);
+					if (!success) throw error(404, 'Thumbnail could not be generated');
+				}
 				const headers = { 'Content-Type': 'image/webp', 'Cache-Control': 'public, max-age=31536000, immutable' };
 				// @ts-ignore
 				if (global.Bun) return new Response(Bun.file(thumbPath), { headers });
@@ -377,7 +400,10 @@ export async function GET({ url, request }: RequestEvent) {
 
 		if (isThumbnail) {
 			const thumbPath = await getThumbnailPath(absolutePath, stat.mtimeMs);
-			if (!fs.existsSync(thumbPath)) await generateThumbnail(absolutePath, thumbPath, stat.mtimeMs, rid, request.signal);
+			if (!fs.existsSync(thumbPath)) {
+				const success = await generateThumbnail(absolutePath, thumbPath, stat.mtimeMs, rid, request.signal);
+				if (!success) throw error(404, 'Thumbnail could not be generated');
+			}
 			const headers = { 'Content-Type': 'image/webp', 'Cache-Control': 'public, max-age=31536000, immutable' };
 			// @ts-ignore
 			if (global.Bun) return new Response(Bun.file(thumbPath), { headers });

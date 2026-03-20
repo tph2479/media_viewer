@@ -150,6 +150,31 @@
 								</svg>
 							</div>
 						</div>
+					{:else if img.isAudio}
+						<div class="absolute inset-0 flex flex-col items-center justify-center bg-primary/5 transition-colors group-hover:bg-primary/10">
+							<svg xmlns="http://www.w3.org/2000/svg" class="w-1/4 h-1/4 text-primary opacity-20 group-hover:opacity-40 transition-all duration-500 group-hover:scale-110" fill="currentColor" viewBox="0 0 24 24">
+								<path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+							</svg>
+						</div>
+						<img
+							src={`/api/image?path=${encodeURIComponent(img.path)}&thumbnail=true`}
+							loading="lazy"
+							decoding="async"
+							fetchpriority="auto"
+							alt={img.name}
+							class="absolute inset-0 w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-700 ease-out z-10"
+							onerror={(e) => {
+								const target = e.currentTarget as HTMLImageElement;
+								target.style.display = 'none';
+							}}
+						/>
+						<div class="absolute top-2 left-2 z-20">
+							<div class="bg-primary/80 backdrop-blur-md p-1.5 rounded-lg border border-white/20 shadow-lg group-hover:bg-primary transition-colors">
+								<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+									<path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+								</svg>
+							</div>
+						</div>
 					{:else}
 						<img
 							src={`/api/image?path=${encodeURIComponent(img.path)}&thumbnail=true`}

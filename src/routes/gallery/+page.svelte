@@ -6,6 +6,7 @@
 	import FolderPicker from './components/FolderPicker.svelte';
 	import GalleryToolbar from './components/GalleryToolbar.svelte';
 	import GalleryGrid from './components/GalleryGrid.svelte';
+	import AudioModal from './components/AudioModal.svelte';
 	import type { ImageFile } from './components/utils';
 
 	// ── Core state ────────────────────────────────────────────────────────────
@@ -17,12 +18,14 @@
 	let loadedImages: ImageFile[] = $state([]);
 	let totalImagesCount = $state(0);
 	let totalVideosCount = $state(0);
+	let totalAudioCount = $state(0);
 	let totalMedia = $state(0);
 	let currentPage = $state(0);
 	const PAGE_SIZE = 30;
 	let hasMore = $state(false);
 
 	let currentSort = $state('date_desc');
+	let mediaType = $state<'all'|'images'|'videos'|'audio'>('all');
 	
 	/** Persistent drives list loaded ONCE on start */
 	let availableDrives = $state<any[]>([]);
@@ -30,6 +33,7 @@
 	// ── Modal / view state ────────────────────────────────────────────────────
 	let isImageModalOpen = $state(false);
 	let isVideoModalOpen = $state(false);
+	let isAudioModalOpen = $state(false);
 	let selectedImageIndex = $state(0);
 	let isWebtoonMode = $state(false);
 	let isFolderPickerOpen = $state(false);
@@ -88,7 +92,7 @@
 	// Trigger highlight when modals are closed
 	let wasModalOpen = false;
 	$effect(() => {
-		const isAnyModalOpen = isImageModalOpen || isVideoModalOpen || isWebtoonMode;
+		const isAnyModalOpen = isImageModalOpen || isVideoModalOpen || isWebtoonMode || isAudioModalOpen;
 		if (wasModalOpen && !isAnyModalOpen && lastOpenedFile) {
 			const targetId = `item-${lastOpenedFile.replace(/[^a-zA-Z0-9]/g, '-')}`;
 			tick().then(() => {
@@ -193,7 +197,7 @@
 			}
 
 			const res = await fetch(
-				`/api/gallery?folder=${encodeURIComponent(folderPath)}&page=${currentPage}&limit=${PAGE_SIZE}&sort=${currentSort}`
+				`/api/gallery?folder=${encodeURIComponent(folderPath)}&page=${currentPage}&limit=${PAGE_SIZE}&sort=${currentSort}&type=${mediaType}`
 			);
 			const data = await res.json();
 
@@ -213,6 +217,7 @@
 
 			totalImagesCount = data.totalImages;
 			totalVideosCount = data.totalVideos;
+			totalAudioCount = data.totalAudio;
 			totalMedia = data.total;
 			hasMore = data.hasMore;
 
@@ -261,6 +266,8 @@
 		selectedImageIndex = index;
 		if (img.isVideo) {
 			isVideoModalOpen = true;
+		} else if (img.isAudio) {
+			isAudioModalOpen = true;
 		} else {
 			isImageModalOpen = true;
 		}
@@ -328,6 +335,7 @@
 				<GalleryToolbar
 					bind:folderPath
 					bind:currentSort
+					bind:mediaType
 					{isLoading}
 					{isFolderSelected}
 					{loadedImages}
@@ -418,6 +426,18 @@
 		bind:selectedImageIndex
 		{loadedImages}
 		totalImages={totalVideosCount} 
+		{hasMore}
+		{currentPage}
+		{loadFolder}
+	/>
+{/if}
+
+{#if isAudioModalOpen && loadedImages.length > selectedImageIndex}
+	<AudioModal
+		bind:isModalOpen={isAudioModalOpen}
+		bind:selectedImageIndex
+		{loadedImages}
+		totalImages={totalAudioCount} 
 		{hasMore}
 		{currentPage}
 		{loadFolder}

@@ -7,7 +7,8 @@
 // All file extensions that the gallery accepts.
 export const ALLOWED_EXTENSIONS = new Set([
 	'.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif', '.bmp', 
-	'.mp4', '.webm', '.cbz', '.zip', '.heic', '.heif'
+	'.mp4', '.webm', '.cbz', '.zip', '.heic', '.heif',
+	'.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac', '.opus', '.m4b'
 ]);
 
 /**
@@ -28,6 +29,14 @@ export function getContentType(ext: string): string {
 		case '.heif': return 'image/heic';
 		case '.mp4':  return 'video/mp4';
 		case '.webm': return 'video/webm';
+		case '.mp3':  return 'audio/mpeg';
+		case '.wav':  return 'audio/wav';
+		case '.ogg':  return 'audio/ogg';
+		case '.flac': return 'audio/flac';
+		case '.m4a':  return 'audio/mp4';
+		case '.aac':  return 'audio/aac';
+		case '.opus': return 'audio/opus';
+		case '.m4b':  return 'audio/mp4';
 		default:      return 'application/octet-stream';
 	}
 }

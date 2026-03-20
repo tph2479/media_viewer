@@ -10,6 +10,7 @@ export async function GET({ url }: RequestEvent) {
 	const pageParam = url.searchParams.get('page') || '0';
 	const limitParam = url.searchParams.get('limit') || '50';
 	const sortBy = url.searchParams.get('sort') || 'date_desc';
+	const typeFilter = url.searchParams.get('type') || 'all';
 
 	if (!folderParam || folderParam === 'This PC' || folderParam === 'This PC (Ổ đĩa hệ thống)') {
 		return json({ images: [], total: 0, page: 0, hasMore: false });
@@ -57,8 +58,16 @@ export async function GET({ url }: RequestEvent) {
 						const isDir = entry.isDirectory();
 						const isCbz = !isDir && (ext === '.cbz' || ext === '.zip');
 						const isVideo = !isDir && (ext === '.mp4' || ext === '.webm');
+						const isAudio = !isDir && ['.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac', '.opus', '.m4b'].includes(ext);
 
-						const isAllowed = isDir || isCbz || ALLOWED_EXTENSIONS.has(ext);
+						let isAllowed = isDir || isCbz || isAudio || ALLOWED_EXTENSIONS.has(ext);
+
+						// Apply type filter
+						if (!isDir) {
+							if (typeFilter === 'images' && (isVideo || isAudio)) isAllowed = false;
+							if (typeFilter === 'videos' && !isVideo) isAllowed = false;
+							if (typeFilter === 'audio' && !isAudio) isAllowed = false;
+						}
 						
 						if (isAllowed) {
 							if (imagesOnlyParam) {
@@ -74,7 +83,8 @@ export async function GET({ url }: RequestEvent) {
 									size: entryStat.size, // Needed for cache keys or metadata placeholder
 									isDir,
 									isCbz,
-									isVideo
+									isVideo,
+									isAudio
 								};
 							} catch (e) { return null; }
 						}
@@ -103,8 +113,9 @@ export async function GET({ url }: RequestEvent) {
 		const start = page * limit;
 		const end = start + limit;
 		const totalCount = imageDetails.length;
-		const totalImagesCount = imageDetails.filter(item => !item.isDir && !item.isCbz && !item.isVideo).length;
+		const totalImagesCount = imageDetails.filter(item => !item.isDir && !item.isCbz && !item.isVideo && !item.isAudio).length;
 		const totalVideosCount = imageDetails.filter(item => item.isVideo).length;
+		const totalAudioCount = imageDetails.filter(item => item.isAudio).length;
 
 		// Final mapping of essential data only
 		const paginatedImages = imageDetails.slice(start, end).map(item => ({
@@ -113,6 +124,8 @@ export async function GET({ url }: RequestEvent) {
 			isDir: item.isDir,
 			isCbz: item.isCbz,
 			isVideo: item.isVideo,
+			isAudio: item.isAudio,
+			size: item.size,
 			lastModified: item.mtime
 		}));
 
@@ -125,6 +138,7 @@ export async function GET({ url }: RequestEvent) {
 			total: totalCount,
 			totalImages: totalImagesCount,
 			totalVideos: totalVideosCount,
+			totalAudio: totalAudioCount,
 			page,
 			hasMore: end < totalCount
 		});

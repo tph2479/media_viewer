@@ -4,6 +4,7 @@
 	let {
 		folderPath = $bindable(),
 		currentSort = $bindable(),
+		mediaType = $bindable(),
 		isLoading,
 		isFolderSelected,
 		loadedImages,
@@ -23,6 +24,7 @@
 		onOpenPicker: () => void;
 		onOpenWebtoon: () => void;
 		onGoUp: (dir: string) => void;
+		mediaType: 'all' | 'images' | 'videos' | 'audio';
 	} = $props();
 
 	const parentPath = $derived.by(() => {
@@ -111,6 +113,19 @@
 		<div class="bg-base-200 border border-base-content/20 px-2 sm:px-3 h-8 rounded-lg flex items-center gap-2 shrink-0 shadow-sm">
 			<span class="text-[13px] font-black tabular-nums">{totalItems}</span>
 		</div>
+
+		<!-- Media Type Select -->
+		<select
+			class="select select-bordered select-sm rounded-lg font-bold w-fit min-w-[100px] shrink-0 border-primary"
+			bind:value={mediaType}
+			onchange={onLoad}
+			disabled={isLoading}
+		>
+			<option value="all">All</option>
+			<option value="images">Images</option>
+			<option value="videos">Videos</option>
+			<option value="audio">Audio</option>
+		</select>
 
 		<!-- Sort Select -->
 		<!-- Mobile: icon only -->
