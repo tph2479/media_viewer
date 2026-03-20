@@ -78,7 +78,7 @@
 	
 	<!-- Sidebar -->
 	<div class="drawer-side z-[100] lg:z-10 border-r border-base-300 h-full fixed lg:static {isSidebarCollapsed ? 'lg:w-16' : 'lg:w-64'}">
-		<label for="main-drawer" aria-label="close sidebar" class="drawer-overlay"></label> 
+		<label for="main-drawer" aria-label="close sidebar" class="drawer-overlay lg:hidden"></label> 
 		<ul class="menu bg-base-100 text-base-content min-h-full sm:w-16 {isMounted ? 'transition-all duration-300 ease-in-out' : ''} flex flex-col gap-0.5 overflow-visible {isSidebarCollapsed ? 'lg:w-16 pt-5 px-0 pb-2' : 'lg:w-64 pt-5 px-1.5 pb-2'}">
 			
 			<!-- Logo Header -->
