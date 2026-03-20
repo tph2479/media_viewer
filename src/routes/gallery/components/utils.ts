@@ -14,69 +14,22 @@ export async function handleImageError(event: Event, imgPath: string) {
 		loadingIndicator.innerHTML = '<span class="loading loading-spinner loading-lg text-primary opacity-50"></span>';
 	}
 
-	if (heicCache.has(imgPath)) {
-		target.src = heicCache.get(imgPath)!;
-		target.onerror = null;
-		target.onload = () => {
-			target.style.display = 'block';
-			if (loadingIndicator) loadingIndicator.style.display = 'none';
-		};
-		return;
-	}
-
 	try {
-		const res = await fetch(`/api/image?path=${encodeURIComponent(imgPath)}`);
-		if (!res.ok) throw new Error('Fetch failed');
-		const blob = await res.blob();
-		
-		const headerBlob = blob.slice(0, 32);
-		const buffer = await headerBlob.arrayBuffer();
-		const uint8 = new Uint8Array(buffer);
-		
-		let isHeic = false;
-		let headerText = '';
-		for (let i = 0; i < uint8.length; i++) {
-			headerText += String.fromCharCode(uint8[i]);
+		// Prevent infinite loops if the image consistently fails
+		if (target.dataset.retried === originalSrc) {
+			console.warn("Image consistently failing:", imgPath);
+			return;
 		}
-		
-		if (headerText.includes('ftypheic') || headerText.includes('ftypheix') || headerText.includes('ftypmif1') || headerText.includes('ftyphevc')) {
-			isHeic = true;
-		}
+		target.dataset.retried = originalSrc;
 
-		const ext = imgPath.split('.').pop()?.toLowerCase();
-		if (isHeic || ext === 'heic' || ext === 'heif') {
-			const heic2any = (await import('heic2any')).default;
-			
-			const convertedBlob = await heic2any({
-				blob,
-				toType: 'image/jpeg',
-				quality: 0.8
-			});
-
-			const finalBlob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
-			
-			const objectUrl = URL.createObjectURL(finalBlob);
-			heicCache.set(imgPath, objectUrl);
-			
-			target.src = objectUrl;
-			target.onerror = null;
-			
-			target.onload = () => {
-				target.style.display = 'block';
-				if (loadingIndicator) loadingIndicator.style.display = 'none';
-			};
-			return; 
-		}
+		// Just wait a moment and retry once without heavy processing
+		await new Promise(resolve => setTimeout(resolve, 500));
+		target.onerror = null; // Prevent infinite loop on this específicos element
+		target.src = originalSrc + (originalSrc.includes('?') ? '&' : '?') + 'retry=' + Date.now();
+		target.style.display = 'block';
+		if (loadingIndicator) loadingIndicator.style.display = 'none';
 	} catch (err) {
-		console.warn("Image Recovery/HEIC conversion failed:", err);
-	}
-
-	// Không phải HEIC hoặc fetch thất bại - thử load lại ảnh gốc
-	target.src = '';
-	target.src = originalSrc;
-	target.style.display = 'block';
-	if (loadingIndicator) {
-		loadingIndicator.style.display = 'none';
+		console.warn("Image recovery failed:", err);
 	}
 }
 

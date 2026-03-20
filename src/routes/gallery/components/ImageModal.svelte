@@ -471,37 +471,47 @@
 		}
 	});
     
+	let lastMetadataPath = $state('');
+
 	$effect(() => {
-		if (isModalOpen && currentItem) {
+		if (isModalOpen && currentItem && currentItem.path !== lastMetadataPath) {
+			const currentPath = currentItem.path;
+			lastMetadataPath = currentPath;
+
+			// If basic metadata is already in the item, use it as initial
 			if (currentItem.width && currentItem.height && currentMetadata === null) {
 				currentMetadata = {
-					size: currentItem.size,
-					lastModified: currentItem.lastModified,
+					name: currentItem.name,
+					path: currentPath,
 					width: currentItem.width,
-					height: currentItem.height
+					height: currentItem.height,
+					size: currentItem.size || 0,
+					lastModified: currentItem.lastModified || 0
 				};
 				return;
 			}
 
 			const controller = new AbortController();
 			isMetadataLoading = true;
-			fetch(`/api/image?path=${encodeURIComponent(currentItem.path)}&metadata=true`, { signal: controller.signal })
+			fetch(`/api/image?path=${encodeURIComponent(currentPath)}&metadata=true`, { signal: controller.signal })
 				.then(res => res.json())
 				.then(data => {
-					currentMetadata = data;
-					currentItem.width = data.width;
-					currentItem.height = data.height;
-					currentItem.size = data.size;
-					currentItem.lastModified = data.lastModified;
+					// Only update if we are still on the same image
+					if (currentPath === currentItem.path) {
+						currentMetadata = { ...data, path: currentPath };
+						currentItem.width = data.width;
+						currentItem.height = data.height;
+					}
 				})
-				.catch((err) => { if (err.name !== 'AbortError') console.warn('Metadata fetch failed', err); })
-				.finally(() => { isMetadataLoading = false; });
+				.catch(err => {
+					if (err.name !== 'AbortError') console.error('Metadata fetch error:', err);
+				})
+				.finally(() => {
+					if (currentPath === currentItem.path) isMetadataLoading = false;
+				});
 
-			return () => {
-				controller.abort();
-				isMetadataLoading = false;
-			};
-		} else {
+			return () => controller.abort();
+		} else if (!isModalOpen) {
 			currentMetadata = null;
 		}
 	});
@@ -664,17 +674,30 @@
 								naturalWidth = img.naturalWidth;
 								naturalHeight = img.naturalHeight;
 								isPortraitImage = naturalHeight > naturalWidth;
-								isFullImageLoaded = true;
+								
+								// Ensure transitions are OFF and image HIDDEN while we find the fit
+								isFullImageLoaded = false;
+								
 								await tick();
 								renderedWidth = img.clientWidth;
+								
 								if (renderedWidth > 0) {
 									fitImageToViewport();
 								} else {
-									setTimeout(fitImageToViewport, 50);
+									await new Promise(r => setTimeout(r, 60));
+									renderedWidth = img.clientWidth;
+									fitImageToViewport();
 								}
+								
+								// CRITICAL: We need TWO frames to ensure the browser paints the "scale(fit)" 
+								// with "transition: none" BEFORE we turn "transition: transform" back on.
+								await tick();
+								await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+								
+								isFullImageLoaded = true;
 							}}
 							class="pointer-events-auto select-none"
-							style="transform: translate({translateX}px, {translateY}px) scale({zoomLevel}) rotate({rotation}deg); transition: transform 0.2s ease-out;"
+							style="opacity: {isFullImageLoaded ? 1 : 0}; transform: translate({translateX}px, {translateY}px) scale({zoomLevel}) rotate({rotation}deg); transition: {isFullImageLoaded ? 'transform 0.2s ease-out, opacity 0.25s ease-in' : 'none'};"
 							decoding="async"
 							fetchpriority="high"
 							draggable="false"
