@@ -86,6 +86,9 @@
 		if (path && path !== lastPathForReset) {
 			lastPathForReset = path;
 			imageKey++;
+			naturalWidth = 0;
+			naturalHeight = 0;
+			renderedWidth = 0;
 			zoomLevel = 1;
 			translateX = 0;
 			translateY = 0;
@@ -112,8 +115,10 @@
 	function fitImageToViewport() {
 		if (renderedWidth > 0 && naturalWidth > 0 && naturalHeight > 0) {
 			const imgH = renderedWidth * (naturalHeight / naturalWidth);
-			const fitWidthZoom = window.innerWidth / renderedWidth;
-			const fitHeightZoom = window.innerHeight / imgH;
+			const fitWidth = isRotated ? imgH : renderedWidth;
+			const fitHeight = isRotated ? renderedWidth : imgH;
+			const fitWidthZoom = window.innerWidth / fitWidth;
+			const fitHeightZoom = window.innerHeight / fitHeight;
 			zoomLevel = Math.min(fitWidthZoom, fitHeightZoom);
 		}
 	}
@@ -655,13 +660,13 @@
 						{#key imageKey}
 						<img 
 							src={currentImageSrc}
-							bind:clientWidth={renderedWidth}
-							onload={(e) => {
+							onload={async (e) => {
 								const img = e.target as HTMLImageElement;
 								naturalWidth = img.naturalWidth;
 								naturalHeight = img.naturalHeight;
 								isPortraitImage = naturalHeight > naturalWidth;
 								isFullImageLoaded = true;
+								await tick();
 								renderedWidth = img.clientWidth;
 								if (renderedWidth > 0) {
 									fitImageToViewport();
