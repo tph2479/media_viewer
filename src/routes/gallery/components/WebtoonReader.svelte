@@ -455,7 +455,7 @@
 
 	<!-- Nội dung Webtoon -->
 	<div class="flex flex-col items-center pb-20 pt-4 min-h-screen outline-none w-full">
-		<div class="flex flex-col items-center origin-top w-full" style="width: {webtoonZoomLevel * 100}%; max-width: {webtoonZoomLevel * 100}%">
+		<div class="flex flex-col items-center origin-top" style="transform: scale({webtoonZoomLevel}); width: 100%; max-width: none;">
 			{#each loadedImages as img, i}
 				{@const inBuffer = Math.abs(i - currentImageIndex) <= BUFFER_SIZE}
 				<!-- svelte-ignore a11y_missing_attribute -->
