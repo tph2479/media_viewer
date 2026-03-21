@@ -105,7 +105,8 @@
 			if (s.webtoonScrollContainer) {
 				const el = document.getElementById(`webtoon-image-${capturedIdx}`);
 				if (el) {
-					s.webtoonScrollContainer.scrollTop = el.offsetTop + (capturedImagePercent * el.offsetHeight);
+					// 16px is the pt-4 padding on the container. el.offsetTop is relative to the inner content div.
+					s.webtoonScrollContainer.scrollTop = 16 + el.offsetTop + (capturedImagePercent * el.offsetHeight);
 				} else {
 					s.webtoonScrollContainer.scrollTop = capturedDocPercent * s.webtoonScrollContainer.scrollHeight;
 				}
@@ -299,7 +300,7 @@
 				<div
 					id="webtoon-image-{i}"
 					use:trackImageIndex={i}
-					style="aspect-ratio: {s.aspectRatios[i] ?? 0.7}; min-height: {s.aspectRatios[i] ? 'auto' : '120vw'}"
+					style="aspect-ratio: {s.aspectRatios[i] ?? 0.7};"
 					class="w-full flex flex-col items-center justify-center border-b border-white/5 bg-black relative"
 				>
 					<img
