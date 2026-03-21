@@ -65,13 +65,10 @@
 			resizeObserver = new ResizeObserver(entries => {
 				for (const entry of entries) {
 					const width = entry.contentRect.width;
-					const height = entry.contentRect.height;
-					const vw = textLayerDiv.getAttribute('data-vw');
-					const vh = textLayerDiv.getAttribute('data-vh');
-					if (vw && vh) {
-						const scaleX = width / parseFloat(vw);
-						const scaleY = height / parseFloat(vh);
-						textLayerDiv.style.transform = `scale(${scaleX}, ${scaleY})`;
+					const ptW = textLayerDiv.getAttribute('data-pt-w');
+					if (ptW) {
+						const totalScaleFactor = width / parseFloat(ptW);
+						textLayerDiv.style.setProperty('--total-scale-factor', String(totalScaleFactor));
 					}
 				}
 			});
@@ -87,75 +84,23 @@
 		};
 	}
 
-	function highlightAction(node: HTMLDivElement, params: any) {
-		let currentParams = params;
-		
-		function applyHighlights() {
-			const textLayerDiv = node.querySelector('.textLayer');
-			if (!textLayerDiv) return;
-			textLayerDiv.querySelectorAll('.pdf-highlight').forEach(el => el.remove());
-			
-			const { i, searchQuery, searchResults, currentSearchResultIndex } = currentParams;
-			if (!searchQuery || searchResults.length === 0) return;
-			
-			const pageMatches = searchResults.filter((r: any) => r.pageIndex === i);
-			if (pageMatches.length === 0) return;
-			
-			const spans = textLayerDiv.querySelectorAll('span:not(.pdf-highlight)');
-			if (spans.length === 0) return;
-			
-			let text = "";
-			const spanOffsets = [];
-			for (let idx = 0; idx < spans.length; idx++) {
-				const start = text.length;
-				text += spans[idx].textContent + " ";
-				spanOffsets.push({ start, end: text.length - 1, spanIndex: idx });
-			}
-			
-			const regex = new RegExp(searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-			let match;
-			while ((match = regex.exec(text)) !== null) {
-				const startMatch = match.index;
-				const endMatch = match.index + searchQuery.length;
-				
-				const currentMatchObj = searchResults[currentSearchResultIndex];
-				const isSelected = currentMatchObj && currentMatchObj.pageIndex === i && currentMatchObj.matchIndex === startMatch;
-				
-				for (const off of spanOffsets) {
-					if (Math.max(startMatch, off.start) < Math.min(endMatch, off.end)) {
-						const span = spans[off.spanIndex] as HTMLElement;
-						const h = document.createElement('div');
-						h.className = `pdf-highlight absolute pointer-events-none rounded mix-blend-multiply z-20 ${isSelected ? 'bg-orange-500/60 shadow-[0_0_8px_rgba(249,115,22,0.6)]' : 'bg-yellow-400/40'}`;
-						h.style.left = span.offsetLeft + 'px';
-						h.style.top = span.offsetTop + 'px';
-						h.style.width = span.offsetWidth + 'px';
-						h.style.height = span.offsetHeight + 'px';
-						h.style.transform = span.style.transform;
-						h.style.transformOrigin = span.style.transformOrigin;
-						textLayerDiv.appendChild(h);
-					}
-				}
-			}
-		}
+	// Reactive search highlighting — applies CSS classes to matching spans
+	$effect(() => {
+		// Track dependencies
+		const _query = s.searchQuery;
+		const _results = s.searchResults;
+		const _currentIdx = s.currentSearchResultIndex;
+		const _pages = pdf.visiblePages;
 
-		const textLayerDiv = node.querySelector('.textLayer');
-		let observer: MutationObserver | null = null;
-		if (textLayerDiv) {
-			observer = new MutationObserver(() => applyHighlights());
-			observer.observe(textLayerDiv, { childList: true });
-			applyHighlights();
+		// Apply highlights to all visible pages
+		for (const pageIdx of _pages) {
+			const pageDiv = document.getElementById(`pdf-page-${pageIdx}`);
+			if (!pageDiv) continue;
+			const textLayerDiv = pageDiv.querySelector('.textLayer') as HTMLDivElement;
+			if (!textLayerDiv) continue;
+			pdf.applySearchHighlights(pageIdx, textLayerDiv);
 		}
-
-		return {
-			update(newParams: any) {
-				currentParams = newParams;
-				applyHighlights();
-			},
-			destroy() {
-				if (observer) observer.disconnect();
-			}
-		};
-	}
+	});
 </script>
 
 <style>
@@ -172,25 +117,11 @@
 	:global(.pdf-dark-mode .textLayer) {
 		mix-blend-mode: difference;
 	}
+	/* Let PDF.js v5 handle base .textLayer styles — only override selection & cursor */
 	:global(.textLayer) {
-		position: absolute;
-		left: 0; top: 0;
-		overflow: visible;
-		opacity: 1;
-		line-height: 1;
 		cursor: text !important;
 		user-select: text !important;
 		-webkit-user-select: text !important;
-	}
-	:global(.textLayer span),
-	:global(.textLayer br) {
-		color: transparent;
-		position: absolute;
-		white-space: pre;
-		cursor: text !important;
-		user-select: text !important;
-		-webkit-user-select: text !important;
-		transform-origin: 0% 0%;
 	}
 	:global(.textLayer ::selection) {
 		background: rgba(0, 0, 255, 0.25);
@@ -199,9 +130,15 @@
 	:global(.pdf-dark-mode .textLayer ::selection) {
 		background: rgba(255, 255, 0, 0.25);
 	}
-	/* Fix pdf.js endOfContent div that blocks text selection */
-	:global(.textLayer .endOfContent) {
-		display: none !important;
+	/* Search highlight styles — applied directly to text layer spans */
+	:global(.textLayer .search-match) {
+		background: rgba(255, 213, 0, 0.45) !important;
+		border-radius: 2px;
+	}
+	:global(.textLayer .search-match-selected) {
+		background: rgba(249, 115, 22, 0.6) !important;
+		border-radius: 2px;
+		box-shadow: 0 0 8px rgba(249, 115, 22, 0.6);
 	}
 </style>
 
@@ -212,6 +149,13 @@
 />
 
 {#if s.isSearchSidebarOpen}
+<!-- Backdrop for click-outside-to-close -->
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div 
+	class="fixed inset-0 z-[399]" 
+	onclick={() => { s.isSearchSidebarOpen = false; s.isSearching = false; }}
+></div>
 <div class="fixed inset-y-0 right-0 w-80 sm:w-96 bg-zinc-950/95 border-l border-white/10 backdrop-blur-xl shadow-2xl z-[400] overflow-hidden flex flex-col animate-in slide-in-from-right duration-300">
 	<div class="p-4 border-b border-white/10 bg-zinc-950/80 backdrop-blur-md shrink-0 flex flex-col gap-3">
 		<div class="flex items-center justify-between">
@@ -243,7 +187,16 @@
 			</button>
 		</div>
 		{#if s.searchResults.length > 0}
-			<div class="text-xs text-white/50 font-mono">{s.searchResults.length} matches found</div>
+			<div class="flex items-center justify-between">
+				<span class="text-xs text-white/50 font-mono">{s.searchResults.length} matches found</span>
+				<button 
+					class="btn btn-ghost btn-xs text-white/40 hover:text-white gap-1 transition-colors"
+					onclick={() => { s.searchQuery = ''; s.searchResults = []; s.currentSearchResultIndex = -1; }}
+				>
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+					Clear
+				</button>
+			</div>
 		{/if}
 	</div>
 	
@@ -281,7 +234,6 @@
 	tabindex="0"
 	class="pdf-scroll fixed inset-0 z-[300] bg-zinc-950 overflow-y-auto animate-in fade-in duration-200 focus:outline-none {s.isDarkMode ? 'pdf-dark-mode' : ''}" 
 	onmousemove={pdf.handleContainerMouseMove}
-	onclick={() => { if (s.isSearchSidebarOpen && window.innerWidth < 768) s.isSearchSidebarOpen = false; }}
 	onscroll={(e) => { s.scrollY = e.currentTarget.scrollTop; }}
 	bind:clientHeight={s.viewportHeight}
 	onwheel={(e) => {
@@ -438,12 +390,11 @@
 					{@const pageMatches = s.searchResults.filter((r: any) => r.pageIndex === i).length}
 					<div 
 						id="pdf-page-{i}" 
-						use:highlightAction={{i, searchQuery: s.searchQuery, searchResults: s.searchResults, currentSearchResultIndex: s.currentSearchResultIndex}}
 						class="bg-white shadow-2xl relative flex items-center justify-center"
 						style="height: {pdf.getPageHeight(i)}px; width: {90 * s.zoomLevel}%; max-width: {1000 * s.zoomLevel}px;"
 					>
 						<canvas use:pageAction={i} class="absolute w-full h-full block object-contain z-0 pointer-events-none"></canvas>
-						<div class="textLayer absolute inset-0 z-10 pointer-events-auto overflow-hidden"></div>
+						<div class="textLayer absolute inset-0 z-10 pointer-events-auto"></div>
 						
 						<!-- Improved highlight overlay if searched -->
 						{#if pageMatches > 0}

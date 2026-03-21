@@ -16,7 +16,7 @@ export function createPdfController(initialPdfPath: string) {
 		isSearchSidebarOpen: false,
 		isSearching: false,
 		hideTimerId: null as any,
-		isDarkMode: false,
+		isDarkMode: typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'business',
 
 		currentPageIndex: 0,
 		zoomLevel: 1.0,
@@ -293,6 +293,7 @@ export function createPdfController(initialPdfPath: string) {
 	}
 
 	const renderTasks = new Map<number, any>();
+	const pageTextCache = new Map<number, string[]>();
 
 	async function renderPageToCanvas(pageIndex: number, canvas: HTMLCanvasElement, textLayerDiv: HTMLDivElement) {
 		if (!s.pdfDoc) return;
@@ -343,9 +344,12 @@ export function createPdfController(initialPdfPath: string) {
 					textLayerDiv.style.setProperty('--scale-round-y', '1px');
 
 					// Don't set width/height/transform — TextLayer manages those
-					const textContentSource = page.streamTextContent();
+					const textContent = await page.getTextContent();
+					const textItems = textContent.items.map((item: any) => item.str as string);
+					pageTextCache.set(pageIndex, textItems);
+
 					const textLayer = new s.pdfjs.TextLayer({
-						textContentSource,
+						textContentSource: textContent,
 						container: textLayerDiv,
 						viewport,
 					});
@@ -374,6 +378,59 @@ export function createPdfController(initialPdfPath: string) {
 		}
 	}
 
+	function applySearchHighlights(pageIndex: number, textLayerDiv: HTMLDivElement) {
+		// Remove old highlights
+		textLayerDiv.querySelectorAll('.search-match, .search-match-selected').forEach(el => {
+			el.classList.remove('search-match', 'search-match-selected');
+		});
+
+		if (!s.searchQuery || s.searchResults.length === 0) return;
+
+		const pageMatches = s.searchResults.filter(r => r.pageIndex === pageIndex);
+		if (pageMatches.length === 0) return;
+
+		// Get the text content spans (exclude markedContent wrappers, br, endOfContent)
+		const spans = Array.from(
+			textLayerDiv.querySelectorAll(':scope > span, .markedContent > span')
+		) as HTMLElement[];
+		if (spans.length === 0) return;
+
+		// Build text from spans with offset mapping
+		let fullText = '';
+		const spanMap: { start: number; end: number; span: HTMLElement }[] = [];
+		for (const span of spans) {
+			const start = fullText.length;
+			const text = span.textContent || '';
+			fullText += text;
+			spanMap.push({ start, end: fullText.length, span });
+			fullText += ' '; // separator between spans
+		}
+
+		// Find matches in the concatenated text
+		const escapedQuery = s.searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+		const regex = new RegExp(escapedQuery, 'gi');
+		let match;
+		let matchIdx = 0;
+		const currentResult = s.searchResults[s.currentSearchResultIndex];
+
+		while ((match = regex.exec(fullText)) !== null) {
+			const matchStart = match.index;
+			const matchEnd = matchStart + match[0].length;
+
+			const isSelected = currentResult &&
+				currentResult.pageIndex === pageIndex &&
+				currentResult.matchIndex === matchStart;
+
+			// Find which spans overlap with this match
+			for (const entry of spanMap) {
+				if (entry.start < matchEnd && entry.end > matchStart) {
+					entry.span.classList.add(isSelected ? 'search-match-selected' : 'search-match');
+				}
+			}
+			matchIdx++;
+		}
+	}
+
 	function destroy() {
 		if (s.pdfDoc) s.pdfDoc.destroy();
 		for (const task of renderTasks.values()) {
@@ -382,6 +439,7 @@ export function createPdfController(initialPdfPath: string) {
 			} catch (e) {}
 		}
 		renderTasks.clear();
+		pageTextCache.clear();
 	}
 
 	return {
@@ -404,6 +462,7 @@ export function createPdfController(initialPdfPath: string) {
 		handleWindowMouseUp,
 		handleContainerMouseMove,
 		renderPageToCanvas,
+		applySearchHighlights,
 		clearCanvas,
 		destroy
 	};
