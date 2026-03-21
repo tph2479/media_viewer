@@ -49,11 +49,21 @@ export async function generateThumbnail(inputPath: string, outputPath: string, m
 
 							if (signal) signal.addEventListener('abort', () => proc.kill(), { once: true });
 
-							const stdout = await new Response(proc.stdout).arrayBuffer();
-							const stderr = await new Response(proc.stderr).text();
+							const stdoutPromise = new Response(proc.stdout).arrayBuffer();
+							const stderrPromise = new Response(proc.stderr).text();
+
+							await proc.exited;
+
+							const stdout = await stdoutPromise;
+							const stderr = await stderrPromise;
 
 							if (proc.exitCode !== 0 || stdout.byteLength === 0) {
-								if (!isAudio || !stderr.includes('Output file is empty')) {
+								const isNoCoverArt = isAudio && (
+									stderr.includes('Output file is empty') ||
+									stderr.includes('matches no streams') ||
+									(stdout.byteLength === 0 && stderr.trim() === '')
+								);
+								if (!isNoCoverArt) {
 									console.error(`[FFmpeg Error] ${inputPath}: ${stderr.trim()}`);
 								}
 								return false;
