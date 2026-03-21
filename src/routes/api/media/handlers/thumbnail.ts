@@ -53,7 +53,7 @@ export async function generateThumbnail(inputPath: string, outputPath: string, m
 
 				await new Promise((resolve, reject) => {
 					const ffmpegArgs = [
-						'-ss', '00:00:01',
+						...(isVideo ? ['-ss', '00:00:01'] : []),
 						'-i', inputPath,
 						'-frames:v', '1',
 						'-vf', 'scale=300:300:force_original_aspect_ratio=increase,crop=300:300',
@@ -65,14 +65,19 @@ export async function generateThumbnail(inputPath: string, outputPath: string, m
 						outputPath
 					];
 
-					const ffmpeg = spawn('ffmpeg', ffmpegArgs, { stdio: 'ignore' });
+					const ffmpeg = spawn('ffmpeg', ffmpegArgs, { stdio: ['ignore', 'ignore', 'pipe'] });
+					let stderr = '';
+					ffmpeg.stderr.on('data', (d) => { stderr += d.toString(); });
 
-					const killFFmpeg = () => { ffmpeg.kill('SIGKILL'); reject(new Error('Aborted')); };
+					const killFFmpeg = () => {
+						ffmpeg.kill('SIGKILL');
+						reject(new Error('Aborted'));
+					};
 					if (signal) signal.addEventListener('abort', killFFmpeg, { once: true });
 					ffmpeg.on('close', (code) => {
 						if (signal) signal.removeEventListener('abort', killFFmpeg);
 						if (code === 0) resolve(true);
-						else reject(new Error(`FFmpeg error ${code}`));
+						else reject(new Error(`FFmpeg error ${code}${stderr ? ': ' + stderr : ''}`));
 					});
 				});
 			} else {
