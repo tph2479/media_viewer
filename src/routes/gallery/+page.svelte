@@ -332,6 +332,7 @@
 		folderPath = normalized;
 		localStorage.setItem('hello-last-path', normalized);
 		currentExclusiveType = null;
+		mediaType = 'all';
 		
 		// Restore page if it exists in history
 		const savedPage = folderPageHistory[normalized] || 0;
@@ -492,6 +493,7 @@
 
 <!-- Modals -->
 <GalleryModals
+	bind:mediaType
 	bind:isWebtoonMode
 	{webtoonActivePath}
 	{handleWebtoonClose}

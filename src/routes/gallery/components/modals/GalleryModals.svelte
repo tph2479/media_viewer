@@ -8,6 +8,7 @@
 	import type { ImageFile } from '../utils/utils';
 
 	let {
+		mediaType = $bindable(),
 		isWebtoonMode = $bindable(),
 		webtoonActivePath,
 		handleWebtoonClose,
@@ -43,6 +44,7 @@
 		isGrouped,
 		onSwitchToPagination
 	}: {
+		mediaType: 'all' | 'images' | 'videos' | 'audio' | 'ebook';
 		isWebtoonMode: boolean;
 		webtoonActivePath: string;
 		handleWebtoonClose: () => void;
@@ -149,6 +151,7 @@
 		onRefreshDrives={refreshDrives}
 		onSelect={() => {
 			const savedPage = folderPageHistory[folderPath] || 0;
+			mediaType = 'all'; 
 			loadFolder(true, savedPage);
 		}}
 		onOpenFile={(path, type) => {
