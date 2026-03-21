@@ -32,6 +32,7 @@
 	let imgFailed = $state(false);
 	let isMuted = $state(false);
 	let previousVolume = 1;
+	let isAutoNext = $state(true);
 
 	const currentAudio = $derived(loadedImages[selectedImageIndex]);
 	const extension = $derived(currentAudio?.name.split('.').pop()?.toUpperCase() || 'AUDIO');
@@ -47,8 +48,14 @@
 
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape') close();
-		if (e.key === 'ArrowLeft') prev();
-		if (e.key === 'ArrowRight') next();
+		if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+			e.preventDefault();
+			prev();
+		}
+		if (e.key === 'ArrowRight' || e.key === 'PageDown') {
+			e.preventDefault();
+			next();
+		}
 		if (e.key === ' ') {
 			e.preventDefault();
 			togglePlay();
@@ -535,6 +542,18 @@
 								<path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>
 							</svg>
 						</button>
+
+						<!-- Auto Next Toggle -->
+						<button 
+							class="ml-2 transition-all active:scale-90 focus:outline-none {isAutoNext ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : 'text-white/20'}" 
+							onclick={() => isAutoNext = !isAutoNext}
+							title="Auto Next"
+							onmousedown={(e) => e.preventDefault()}
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+								<path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+							</svg>
+						</button>
 					</div>
 
 					<!-- Volume -->
@@ -584,7 +603,7 @@
 		onpause={() => isPlaying = false}
 		ontimeupdate={(e) => currentTime = e.currentTarget.currentTime}
 		onloadedmetadata={(e) => { duration = e.currentTarget.duration; if (audioPlayer) audioPlayer.volume = volume; }}
-		onended={next}
+		onended={() => { if (isAutoNext) next(); }}
 	></audio>
 </div>
 

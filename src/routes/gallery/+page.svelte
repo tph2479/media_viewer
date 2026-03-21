@@ -147,6 +147,7 @@
 
 		// Auto load last folder if exists
 		if (folderPath && folderPath !== 'C:\\Users') {
+			folderPath = normalizePath(folderPath); // Ensure path is normalized
 			const savedPage = folderPageHistory[folderPath] || 0;
 			loadFolder(true, savedPage);
 		}
@@ -173,6 +174,17 @@
 		isFolderSelected = false;
 	});
 
+	function normalizePath(p: string) {
+		if (!p) return p;
+		let res = p.trim();
+		if (res.length === 2 && res[1] === ':') {
+			res += '\\';
+		} else if (res.length > 3 && (res.endsWith('\\') || res.endsWith('/'))) {
+			res = res.slice(0, -1);
+		}
+		return res;
+	}
+
 	// ── Data loading ──────────────────────────────────────────────────────────
 	async function loadFolder(reset = true, pageToLoad = 0, append = false) {
 		if (!folderPath.trim()) {
@@ -182,6 +194,10 @@
 
 		isLoading = true;
 		errorMsg = '';
+		
+		// Capture and normalize path at the start to avoid race conditions
+		folderPath = normalizePath(folderPath);
+		const targetPath = folderPath; 
 		const targetId = lastOpenedFolder ? `item-${lastOpenedFolder.replace(/[^a-zA-Z0-9]/g, '-')}` : null;
 
 		if (reset) {
@@ -202,7 +218,7 @@
 			}
 
 			const res = await fetch(
-				`/api/gallery?folder=${encodeURIComponent(folderPath)}&page=${currentPage}&limit=${PAGE_SIZE}&sort=${currentSort}&type=${mediaType}`
+				`/api/gallery?folder=${encodeURIComponent(targetPath)}&page=${currentPage}&limit=${PAGE_SIZE}&sort=${currentSort}&type=${mediaType}`
 			);
 			const data = await res.json();
 
@@ -212,12 +228,8 @@
 
 			if (reset) {
 				isFolderSelected = true;
-				if (folderPath.length === 2 && folderPath[1] === ':') {
-					folderPath += '\\';
-				} else if (folderPath.length > 3 && (folderPath.endsWith('\\') || folderPath.endsWith('/'))) {
-					folderPath = folderPath.slice(0, -1);
-				}
-				localStorage.setItem('hello-last-path', folderPath);
+				// Path is already normalized above
+				localStorage.setItem('hello-last-path', targetPath);
 			}
 
 			totalImagesCount = data.totalImages;
@@ -226,8 +238,8 @@
 			totalMedia = data.total;
 			hasMore = data.hasMore;
 
-			// Save current state to history
-			folderPageHistory[folderPath] = currentPage;
+			// Save current state to history using the CAPTURED path
+			folderPageHistory[targetPath] = currentPage;
 			sessionStorage.setItem('hello-folder-history', JSON.stringify(folderPageHistory));
 
 			// Logic cuộn về vị trí cũ
@@ -291,17 +303,18 @@
 	}
 
 	function openDir(dirPath: string, isGoingUp = false) {
+		const normalized = normalizePath(dirPath);
 		if (isGoingUp) {
 			lastOpenedFolder = folderPath;
 		} else {
 			lastOpenedFolder = null;
 		}
 		
-		folderPath = dirPath;
-		localStorage.setItem('hello-last-path', dirPath);
+		folderPath = normalized;
+		localStorage.setItem('hello-last-path', normalized);
 		
 		// Restore page if it exists in history
-		const savedPage = folderPageHistory[dirPath] || 0;
+		const savedPage = folderPageHistory[normalized] || 0;
 		loadFolder(true, savedPage);
 	}
 
