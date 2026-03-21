@@ -32,7 +32,7 @@ export function createVideoController() {
 		v.loop = false;
 		v.volume = 0;
 		v.removeAttribute('src');
-		v.load(); 
+		v.load();
 	}
 
 	function toggleFullscreen() {
@@ -40,17 +40,17 @@ export function createVideoController() {
 		const container = document.getElementById('media-modal-container');
 		if (!container) return;
 		if (!document.fullscreenElement) {
-			container.requestFullscreen().catch(() => {});
+			container.requestFullscreen().catch(() => { });
 		} else {
-			document.exitFullscreen().catch(() => {});
+			document.exitFullscreen().catch(() => { });
 		}
 	}
-	
+
 	function handleMouseMoveVisibility(e: MouseEvent) {
 		if (typeof window === 'undefined') return;
 		const height = window.innerHeight;
 		const ratioY = e.clientY / height;
-		const isInTopZone = ratioY < 0.2; 
+		const isInTopZone = ratioY < 0.2;
 
 		if (isInTopZone) {
 			s.controlsVisible = true;

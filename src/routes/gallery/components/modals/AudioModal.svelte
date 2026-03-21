@@ -99,6 +99,33 @@
 		ctrl.destroy();
 	});
 
+	$effect(() => {
+		if (currentAudio && isModalOpen && typeof navigator !== 'undefined' && 'mediaSession' in navigator) {
+			navigator.mediaSession.metadata = new MediaMetadata({
+				title: currentAudio.name.replace(/\.[^/.]+$/, ""),
+				artist: 'Media Viewer',
+				artwork: [
+					{
+						src: `/api/media?path=${encodeURIComponent(currentAudio.path)}&thumbnail=true&v=${cacheVersion.value}`,
+						sizes: '512x512',
+						type: 'image/jpeg'
+					}
+				]
+			});
+
+			navigator.mediaSession.setActionHandler('previoustrack', () => prev());
+			navigator.mediaSession.setActionHandler('nexttrack', () => next());
+		}
+	});
+
+	$effect(() => {
+		if (!isModalOpen && typeof navigator !== 'undefined' && 'mediaSession' in navigator) {
+			navigator.mediaSession.metadata = null;
+			navigator.mediaSession.setActionHandler('previoustrack', null);
+			navigator.mediaSession.setActionHandler('nexttrack', null);
+		}
+	});
+
 	let progress = $derived(s.duration ? (s.currentTime / s.duration) * 100 : 0);
 
 </script>

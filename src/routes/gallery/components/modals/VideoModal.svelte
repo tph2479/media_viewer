@@ -146,6 +146,33 @@
 	});
 
 	$effect(() => {
+		if (currentItem && isModalOpen && typeof navigator !== 'undefined' && 'mediaSession' in navigator) {
+			navigator.mediaSession.metadata = new MediaMetadata({
+				title: currentItem.name.replace(/\.[^/.]+$/, ""),
+				artist: 'Media Viewer',
+				artwork: [
+					{
+						src: `/api/media?path=${encodeURIComponent(currentItem.path)}&thumbnail=true&v=${cacheVersion.value}`,
+						sizes: '512x512',
+						type: 'image/jpeg'
+					}
+				]
+			});
+
+			navigator.mediaSession.setActionHandler('previoustrack', () => prevVideo());
+			navigator.mediaSession.setActionHandler('nexttrack', () => nextVideo());
+		}
+	});
+
+	$effect(() => {
+		if (!isModalOpen && typeof navigator !== 'undefined' && 'mediaSession' in navigator) {
+			navigator.mediaSession.metadata = null;
+			navigator.mediaSession.setActionHandler('previoustrack', null);
+			navigator.mediaSession.setActionHandler('nexttrack', null);
+		}
+	});
+
+	$effect(() => {
 		if (!isModalOpen) {
 			s.currentVideoSrc = '';
 			s.currentMetadata = null;
