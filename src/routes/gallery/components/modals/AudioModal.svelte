@@ -120,10 +120,10 @@
 				onerror={() => s.imgFailed = true}
 			/>
 		{:else}
-			<div class="w-full h-full bg-zinc-900 shadow-inner"></div>
+			<div class="w-full h-full bg-neutral-800 shadow-inner"></div>
 		{/if}
-		<div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
-		<div class="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)]"></div>
+		<div class="absolute inset-0 bg-gradient-to-t from-neutral-900 via-neutral-900/40 to-transparent"></div>
+		<div class="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(38,38,38,0.9)_100%)]"></div>
 	</div>
 
 	<!-- Centered, Width-Limited Canvas Visualizer (Background) -->
@@ -144,17 +144,14 @@
 		in:fly={{ y: 20, duration: 600, easing: quintOut }}
 	>
 		<!-- Cover Art Panel -->
-		<div class="relative group perspective-1000 w-full max-w-[200px] md:max-w-[420px] aspect-square flex-shrink-0">
-			<!-- Subtle Glow -->
-			<div class="absolute inset-4 bg-white/5 rounded-full opacity-0 group-hover:opacity-20 transition-opacity"></div>
-			
+		<div class="relative perspective-1000 w-full max-w-[200px] md:max-w-[420px] aspect-square flex-shrink-0">
 			<!-- Card wrapper -->
-			<div class="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl border border-white/20 bg-black/40 transition-all duration-700 group-hover:scale-105">
+			<div class="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl border border-white/20 bg-black/40">
 				{#if !s.imgFailed}
 					<img 
 						src={`/api/media?path=${encodeURIComponent(currentAudio?.path || '')}&thumbnail=true`} 
 						alt={currentAudio?.name}
-						class="w-full h-full object-cover transition-all duration-1000 group-hover:scale-110"
+						class="w-full h-full object-cover"
 						onerror={() => s.imgFailed = true}
 					/>
 				{:else}
