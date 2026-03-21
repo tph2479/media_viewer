@@ -35,7 +35,7 @@ export async function generateThumbnail(inputPath: string, outputPath: string, m
 			const isAudio = ['.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac', '.opus', '.m4b'].includes(ext);
 
 			if (isVideo || isAudio) {
-				const success = await new Promise<boolean>((resolve) => {
+				try {
 					const ffmpegArgs = [
 						'-hide_banner',
 						'-loglevel', 'error',
@@ -44,37 +44,47 @@ export async function generateThumbnail(inputPath: string, outputPath: string, m
 						'-i', inputPath,
 						'-map', '0:v:0',
 						'-frames:v', '1',
-						'-vf', 'scale=200:200:force_original_aspect_ratio=increase,crop=200:200',
-						'-c:v', 'webp',
-						'-lossless', '0',
-						'-compression_level', '0',
-						'-q:v', '65',
-						'-y',
-						outputPath
+						'-f', 'image2',
+						'-vcodec', 'mjpeg',
+						'pipe:1'
 					];
 
-					const ffmpeg = spawn('ffmpeg', ffmpegArgs, { stdio: ['ignore', 'ignore', 'pipe'] });
+					const ffmpeg = spawn('ffmpeg', ffmpegArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
+					const chunks: Buffer[] = [];
 					let stderr = '';
+
+					ffmpeg.stdout.on('data', (d) => chunks.push(d));
 					ffmpeg.stderr.on('data', (d) => { stderr += d.toString(); });
 
 					let killed = false;
 					const killFFmpeg = () => {
 						killed = true;
 						ffmpeg.kill('SIGKILL');
-						resolve(false);
 					};
 					if (signal) signal.addEventListener('abort', killFFmpeg, { once: true });
-					ffmpeg.on('close', (code) => {
-						if (signal) signal.removeEventListener('abort', killFFmpeg);
-						if (!killed && code !== 0 && stderr) {
-							if (!isAudio || !stderr.includes('Output file is empty')) {
-								console.error(`[FFmpeg Error] ${inputPath}: ${stderr.trim()}`);
+
+					const success = await new Promise<boolean>((resolve) => {
+						ffmpeg.on('close', (code) => {
+							if (signal) signal.removeEventListener('abort', killFFmpeg);
+							if (!killed && code !== 0 && stderr) {
+								if (!isAudio || !stderr.includes('Output file is empty')) {
+									console.error(`[FFmpeg Error] ${inputPath}: ${stderr.trim()}`);
+								}
 							}
-						}
-						resolve(code === 0);
+							resolve(code === 0 && chunks.length > 0);
+						});
 					});
-				});
-				if (!success) return false;
+
+					if (!success || killed) return false;
+
+					await sharp(Buffer.concat(chunks))
+						.rotate()
+						.resize(200, 200, { fit: 'cover', fastShrinkOnLoad: true })
+						.webp({ quality: 65, effort: 0 })
+						.toFile(outputPath);
+				} catch (e) {
+					return false;
+				}
 			} else {
 				let sharpInput: any = inputPath;
 				let isHeif = ext === '.heic' || ext === '.heif';

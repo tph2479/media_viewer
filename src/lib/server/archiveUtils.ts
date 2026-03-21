@@ -1,4 +1,5 @@
 import path from 'node:path';
+import os from 'node:os';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import { createHash } from 'node:crypto';
@@ -14,7 +15,7 @@ if (!fs.existsSync(THUMB_CACHE_DIR)) {
 const HEIC_BRANDS = new Set(['heic', 'heix', 'hevc', 'hevx', 'mif1', 'mif2', 'msf1', 'msf2', 'heis', 'hevm']);
 
 let activeGenerations = 0;
-const MAX_CONCURRENT_THUMBS = 4;
+const MAX_CONCURRENT_THUMBS = Math.min(16, Math.max(4, os.cpus()?.length || 4));
 const generationQueue: (() => void)[] = [];
 const ongoingGenerations = new Map<string, Promise<any>>();
 
