@@ -146,7 +146,7 @@
 		<!-- Cover Art Panel -->
 		<div class="relative perspective-1000 w-full max-w-[200px] md:max-w-[420px] aspect-square flex-shrink-0">
 			<!-- Card wrapper -->
-			<div class="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl border border-white/20 bg-black/40">
+			<div class="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl border border-white/20 bg-neutral-800/80">
 				{#if !s.imgFailed}
 					<img 
 						src={`/api/media?path=${encodeURIComponent(currentAudio?.path || '')}&thumbnail=true`} 
@@ -155,7 +155,7 @@
 						onerror={() => s.imgFailed = true}
 					/>
 				{:else}
-					<div class="w-full h-full flex items-center justify-center bg-zinc-900 border border-white/5">
+					<div class="w-full h-full flex items-center justify-center bg-neutral-800 border border-white/5">
 						<svg xmlns="http://www.w3.org/2000/svg" class="w-24 h-24 text-white/10" fill="currentColor" viewBox="0 0 24 24">
 							<path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
 						</svg>
@@ -167,10 +167,10 @@
 
 			<!-- Record Edge -->
 			<div 
-				class="absolute -right-6 top-1/2 -translate-y-1/2 w-[85%] h-[85%] bg-black rounded-full border border-white/10 shadow-2xl -z-10 transition-all duration-1000 {s.isPlaying ? 'translate-x-16 opacity-100' : 'translate-x-0 opacity-0'}"
-				style="background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);"
+				class="absolute -right-6 top-1/2 -translate-y-1/2 w-[85%] h-[85%] bg-neutral-800 rounded-full border border-white/10 shadow-2xl -z-10 transition-all duration-1000 {s.isPlaying ? 'translate-x-16 opacity-100' : 'translate-x-0 opacity-0'}"
+				style="background: radial-gradient(circle at center, #444444 0%, #262626 100%);"
 			>
-				<div class="absolute inset-[37.5%] rounded-full bg-black/60 border border-white/10 flex items-center justify-center overflow-hidden">
+				<div class="absolute inset-[37.5%] rounded-full bg-neutral-800/80 border border-white/10 flex items-center justify-center overflow-hidden">
 					{#if !s.imgFailed}
 						<img src={`/api/media?path=${encodeURIComponent(currentAudio?.path || '')}&thumbnail=true`} alt="" class="w-full h-full object-cover opacity-50 animate-spin-slow will-change-transform" />
 					{/if}
