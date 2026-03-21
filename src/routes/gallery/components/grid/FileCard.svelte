@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 	import { isVideoFile, isZipFile, isCbzFile, isPdfFile, isEpubFile, handleImageError, formatBytes, type ImageFile } from '../utils/utils';
+	import { cacheVersion } from '$lib/stores/cache.svelte';
 
 	let {
 		img = $bindable(),
@@ -77,7 +78,7 @@
 		{:else if isCbzFile(img.name)}
 			<!-- CBZ cover -->
 			<img
-				src={`/api/ebook?path=${encodeURIComponent(img.path)}&cover=true`}
+				src={`/api/ebook?path=${encodeURIComponent(img.path)}&cover=true&v=${cacheVersion.value}`}
 				loading="lazy"
 				decoding="async"
 				fetchpriority={index < 12 ? 'high' : 'auto'}
@@ -99,7 +100,7 @@
 			</div>
 		{:else if isVideoFile(img.name)}
 			<img
-				src={`/api/media?path=${encodeURIComponent(img.path)}&thumbnail=true`}
+				src={`/api/media?path=${encodeURIComponent(img.path)}&thumbnail=true&v=${cacheVersion.value}`}
 				loading="lazy"
 				decoding="async"
 				fetchpriority={index < 12 ? 'high' : 'auto'}
@@ -120,7 +121,7 @@
 				</svg>
 			</div>
 			<img
-				src={`/api/media?path=${encodeURIComponent(img.path)}&thumbnail=true`}
+				src={`/api/media?path=${encodeURIComponent(img.path)}&thumbnail=true&v=${cacheVersion.value}`}
 				loading="lazy"
 				decoding="async"
 				fetchpriority="auto"
@@ -162,7 +163,7 @@
 			</div>
 		{:else}
 			<img
-				src={`/api/media?path=${encodeURIComponent(img.path)}&thumbnail=true`}
+				src={`/api/media?path=${encodeURIComponent(img.path)}&thumbnail=true&v=${cacheVersion.value}`}
 				loading="lazy"
 				decoding="async"
 				fetchpriority={index < 12 ? 'high' : 'auto'}

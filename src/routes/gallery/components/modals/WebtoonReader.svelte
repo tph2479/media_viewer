@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { tick, onMount, onDestroy } from 'svelte';
 	import { isVideoFile, type ImageFile } from '../utils/utils';
+	import { cacheVersion } from '$lib/stores/cache.svelte';
 	import { createWebtoonController } from './webtoonController.svelte';
 
 	let {
@@ -248,7 +249,7 @@
 					class="w-full flex flex-col items-center justify-center border-b border-white/5 bg-black relative"
 				>
 					<img
-						src={inBuffer ? `/api/media?path=${encodeURIComponent(img.path)}` : undefined}
+						src={inBuffer ? `/api/media?path=${encodeURIComponent(img.path)}&v=${cacheVersion.value}` : undefined}
 						alt=""
 						class="w-full h-auto object-contain block m-0 p-0 pointer-events-none"
 						onload={(e) => {

@@ -1,5 +1,6 @@
 import { tick } from 'svelte';
 import type { ImageFile } from '../utils/utils';
+import { cacheVersion } from '$lib/stores/cache.svelte';
 
 const minZoom = 0.001;
 const maxZoom = 500;
@@ -95,7 +96,7 @@ export function createImageModalState(props: {
 
 	$effect(() => {
 		if (currentItem?.path) {
-			currentImageSrc = `/api/media?path=${encodeURIComponent(currentItem.path)}`;
+			currentImageSrc = `/api/media?path=${encodeURIComponent(currentItem.path)}&v=${cacheVersion.value}`;
 			isFullImageLoaded = false;
 			translateX = 0;
 			translateY = 0;
@@ -150,7 +151,7 @@ export function createImageModalState(props: {
 			isMetadataLoading = true;
 			const retryParam = isMetadataRetry ? '&retry=true' : '';
 			
-			fetch(`/api/media?path=${encodeURIComponent(currentPath)}&metadata=true${retryParam}`, { signal: controller.signal })
+			fetch(`/api/media?path=${encodeURIComponent(currentPath)}&metadata=true${retryParam}&v=${cacheVersion.value}`, { signal: controller.signal })
 				.then(res => res.json())
 				.then(data => {
 					if (currentPath === currentItem.path) {

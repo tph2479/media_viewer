@@ -1,6 +1,7 @@
 <script lang="ts">
 	import "../app.css";
 	import { onMount } from 'svelte';
+	import { cacheVersion } from '$lib/stores/cache.svelte';
 
 	let { children } = $props();
 	
@@ -59,6 +60,7 @@
 		isClearingCache = true;
 		try {
 			await fetch('/api/media', { method: 'DELETE' });
+			cacheVersion.refresh();
 			localStorage.removeItem('hello-theme');
 			userHasSetPreference = false;
 			const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;

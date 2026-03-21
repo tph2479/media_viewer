@@ -2,8 +2,8 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { fade, fly, scale } from 'svelte/transition';
 	import { quintOut } from 'svelte/easing';
-	import type { ImageFile } from '../utils/utils';
-	import { formatDate, formatBytes } from '../utils/utils';
+	import { formatDate, formatBytes, type ImageFile } from '../utils/utils';
+	import { cacheVersion } from '$lib/stores/cache.svelte';
 	import { createAudioController } from './audioController.svelte';
 
 	let {
@@ -113,7 +113,7 @@
 	<div class="absolute inset-0 z-0">
 		{#if !s.imgFailed}
 			<img 
-				src={`/api/media?path=${encodeURIComponent(currentAudio?.path || '')}&thumbnail=true`} 
+				src={`/api/media?path=${encodeURIComponent(currentAudio?.path || '')}&thumbnail=true&v=${cacheVersion.value}`} 
 				alt=""
 				class="w-full h-full object-cover opacity-20 saturate-[1.2]"
 				transition:fade={{ duration: 1000 }}
@@ -149,7 +149,7 @@
 			<div class="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl border border-white/20 bg-neutral-800/80">
 				{#if !s.imgFailed}
 					<img 
-						src={`/api/media?path=${encodeURIComponent(currentAudio?.path || '')}&thumbnail=true`} 
+						src={`/api/media?path=${encodeURIComponent(currentAudio?.path || '')}&thumbnail=true&v=${cacheVersion.value}`} 
 						alt={currentAudio?.name}
 						class="w-full h-full object-cover"
 						onerror={() => s.imgFailed = true}
@@ -172,7 +172,7 @@
 			>
 				<div class="absolute inset-[37.5%] rounded-full bg-neutral-800/80 border border-white/10 flex items-center justify-center overflow-hidden">
 					{#if !s.imgFailed}
-						<img src={`/api/media?path=${encodeURIComponent(currentAudio?.path || '')}&thumbnail=true`} alt="" class="w-full h-full object-cover opacity-50 animate-spin-slow will-change-transform" />
+						<img src={`/api/media?path=${encodeURIComponent(currentAudio?.path || '')}&thumbnail=true&v=${cacheVersion.value}`} alt="" class="w-full h-full object-cover opacity-50 animate-spin-slow will-change-transform" />
 					{/if}
 				</div>
 			</div>
@@ -324,7 +324,7 @@
 	<!-- Hidden Audio Native -->
 	<audio
 		bind:this={s.audioPlayer}
-		src={`/api/media?path=${encodeURIComponent(currentAudio?.path || '')}`}
+		src={`/api/media?path=${encodeURIComponent(currentAudio?.path || '')}&v=${cacheVersion.value}`}
 		crossorigin="anonymous"
 		autoplay
 		loop={s.isLooping}

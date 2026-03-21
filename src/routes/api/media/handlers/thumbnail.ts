@@ -2,10 +2,11 @@ import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
+import os from 'node:os';
 import sharp from 'sharp';
 import { isHeifBuffer, getThumbnailPath, ensureHeicConverted } from '$lib/server/archiveUtils';
 
-const MAX_CONCURRENT_THUMBS = 4;
+const MAX_CONCURRENT_THUMBS = Math.min(16, Math.max(4, os.cpus()?.length || 4));
 let activeGenerations = 0;
 const generationQueue: (() => void)[] = [];
 const ongoingGenerations = new Map<string, Promise<boolean>>();
@@ -34,33 +35,20 @@ export async function generateThumbnail(inputPath: string, outputPath: string, m
 			const isAudio = ['.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac', '.opus', '.m4b'].includes(ext);
 
 			if (isVideo || isAudio) {
-				const { hasVideoStream } = await new Promise<{ hasVideoStream: boolean }>((resolve) => {
-					const probe = spawn('ffprobe', [
-						'-v', 'error',
-						'-select_streams', 'v',
-						'-show_entries', 'stream=codec_type',
-						'-of', 'csv=p=0',
-						inputPath
-					], { stdio: ['ignore', 'pipe', 'ignore'] });
-					let output = '';
-					probe.stdout.on('data', (d) => { output += d; });
-					probe.on('close', () => { resolve({ hasVideoStream: output.trim().length > 0 }); });
-				});
-
-				if (!hasVideoStream) {
-					return false;
-				}
-
-				await new Promise((resolve, reject) => {
+				const success = await new Promise<boolean>((resolve) => {
 					const ffmpegArgs = [
+						'-hide_banner',
+						'-loglevel', 'error',
+						'-an', '-sn',
 						...(isVideo ? ['-ss', '00:00:01'] : []),
 						'-i', inputPath,
+						'-map', '0:v:0',
 						'-frames:v', '1',
-						'-vf', 'scale=300:300:force_original_aspect_ratio=increase,crop=300:300',
+						'-vf', 'scale=200:200:force_original_aspect_ratio=increase,crop=200:200',
 						'-c:v', 'webp',
 						'-lossless', '0',
 						'-compression_level', '0',
-						'-q:v', '60',
+						'-q:v', '65',
 						'-y',
 						outputPath
 					];
@@ -69,17 +57,24 @@ export async function generateThumbnail(inputPath: string, outputPath: string, m
 					let stderr = '';
 					ffmpeg.stderr.on('data', (d) => { stderr += d.toString(); });
 
+					let killed = false;
 					const killFFmpeg = () => {
+						killed = true;
 						ffmpeg.kill('SIGKILL');
-						reject(new Error('Aborted'));
+						resolve(false);
 					};
 					if (signal) signal.addEventListener('abort', killFFmpeg, { once: true });
 					ffmpeg.on('close', (code) => {
 						if (signal) signal.removeEventListener('abort', killFFmpeg);
-						if (code === 0) resolve(true);
-						else reject(new Error(`FFmpeg error ${code}${stderr ? ': ' + stderr : ''}`));
+						if (!killed && code !== 0 && stderr) {
+							if (!isAudio || !stderr.includes('Output file is empty')) {
+								console.error(`[FFmpeg Error] ${inputPath}: ${stderr.trim()}`);
+							}
+						}
+						resolve(code === 0);
 					});
 				});
+				if (!success) return false;
 			} else {
 				let sharpInput: any = inputPath;
 				let isHeif = ext === '.heic' || ext === '.heif';

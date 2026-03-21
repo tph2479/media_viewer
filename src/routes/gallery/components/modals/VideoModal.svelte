@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { isVideoFile, formatBytes, formatDateTime, type ImageFile } from '../utils/utils';
 	import { onDestroy } from 'svelte';
+	import { cacheVersion } from '$lib/stores/cache.svelte';
 	import { createVideoController } from './videoController.svelte';
 
 	let {
@@ -140,7 +141,7 @@
 
 	$effect(() => {
 		if (currentItem?.path) {
-			s.currentVideoSrc = `/api/media?path=${encodeURIComponent(currentItem.path)}`;
+			s.currentVideoSrc = `/api/media?path=${encodeURIComponent(currentItem.path)}&v=${cacheVersion.value}`;
 		}
 	});
 
@@ -161,7 +162,7 @@
 			s.lastMetadataPath = currentItem.path;
 			const controller = new AbortController();
 			s.isMetadataLoading = true;
-			fetch(`/api/media?path=${encodeURIComponent(currentItem.path)}&metadata=true`, { signal: controller.signal })
+			fetch(`/api/media?path=${encodeURIComponent(currentItem.path)}&metadata=true&v=${cacheVersion.value}`, { signal: controller.signal })
 				.then(res => res.json())
 				.then(data => {
 					s.currentMetadata = data;
