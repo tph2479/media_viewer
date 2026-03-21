@@ -38,7 +38,10 @@
 		onOpenFile,
 
 		isNoImagesPopupOpen = $bindable(),
-		noImagesPopupTimer = $bindable()
+		noImagesPopupTimer = $bindable(),
+
+		isGrouped,
+		onSwitchToPagination
 	}: {
 		isWebtoonMode: boolean;
 		webtoonActivePath: string;
@@ -71,6 +74,9 @@
 
 		isNoImagesPopupOpen: boolean;
 		noImagesPopupTimer: any;
+
+		isGrouped: boolean;
+		onSwitchToPagination: () => Promise<void>;
 	} = $props();
 </script>
 
@@ -91,6 +97,8 @@
 		{hasMore}
 		{currentPage}
 		{loadFolder}
+		{isGrouped}
+		{onSwitchToPagination}
 	/>
 {/if}
 
@@ -111,6 +119,9 @@
 		{hasMore}
 		{currentPage}
 		{loadFolder}
+		{isGrouped}
+		{onSwitchToPagination}
+		onSwitchToAudio={() => { isVideoModalOpen = false; isAudioModalOpen = true; }}
 	/>
 {/if}
 
@@ -123,6 +134,9 @@
 		{hasMore}
 		{currentPage}
 		{loadFolder}
+		{isGrouped}
+		{onSwitchToPagination}
+		onSwitchToVideo={() => { isAudioModalOpen = false; isVideoModalOpen = true; }}
 	/>
 {/if}
 

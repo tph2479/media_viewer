@@ -390,6 +390,23 @@
 			});
 		});
 	}
+
+	async function handleSwitchToPaginationToContinue() {
+		const firstItem = loadedImages[0];
+		if (!firstItem) return;
+		
+		let key = 'images';
+		if (firstItem.isVideo) key = 'videos';
+		else if (firstItem.isAudio) key = 'audio';
+		else if (firstItem.isPdf) key = 'pdf';
+		else if (firstItem.isCbz) key = 'cbz';
+		else if (firstItem.isEpub) key = 'epub';
+
+		const scrollContainer = document.querySelector('.drawer-content');
+		if (scrollContainer) groupScrollPosition = scrollContainer.scrollTop;
+		currentExclusiveType = key;
+		await loadFolder(true, 0);
+	}
 </script>
 
 <div class="flex flex-col relative w-full min-h-full">
@@ -502,4 +519,6 @@
 	}}
 	bind:isNoImagesPopupOpen
 	bind:noImagesPopupTimer
+	{isGrouped}
+	onSwitchToPagination={handleSwitchToPaginationToContinue}
 />

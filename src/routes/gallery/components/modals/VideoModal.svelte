@@ -11,7 +11,10 @@
 		totalImages = 0,
 		hasMore = false,
 		currentPage = 0,
-		loadFolder
+		loadFolder,
+		isGrouped = false,
+		onSwitchToPagination,
+		onSwitchToAudio
 	}: {
 		isModalOpen: boolean;
 		selectedImageIndex: number;
@@ -20,6 +23,9 @@
 		hasMore: boolean;
 		currentPage: number;
 		loadFolder: (reset: boolean, page: number, append?: boolean) => Promise<void>;
+		isGrouped?: boolean;
+		onSwitchToPagination?: () => Promise<void>;
+		onSwitchToAudio?: () => void;
 	} = $props();
 
 	const ctrl = createVideoController();
@@ -45,8 +51,13 @@
 		return item && !item.isDir && !item.isCbz && item.isVideo;
 	}
 
-	function nextVideo() {
+	async function nextVideo() {
 		let nextIdx = selectedImageIndex + 1;
+		
+		if (isGrouped && nextIdx >= loadedImages.length && onSwitchToPagination) {
+			await onSwitchToPagination();
+		}
+
 		while (nextIdx < loadedImages.length) {
 			if (isVideoItem(loadedImages[nextIdx])) {
 				selectedImageIndex = nextIdx;
@@ -55,7 +66,7 @@
 			nextIdx++;
 		}
 		
-		if (hasMore) {
+		if (hasMore && !isGrouped) {
 			loadFolder(false, currentPage + 1, true).then(() => {
 				nextVideo();
 			});
@@ -389,6 +400,11 @@
 
 											<!-- Other Functions -->
 											<div class="flex items-center gap-1">
+												{#if onSwitchToAudio}
+													<button aria-label="Audio Only" class="btn btn-ghost w-8 h-8 min-h-0 p-0 text-white transition-colors hover:bg-white/10" onclick={(e) => { e.stopPropagation(); onSwitchToAudio(); }} title="Audio Only Mode" onmousedown={(e) => e.preventDefault()}>
+														<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg>
+													</button>
+												{/if}
 												<button aria-label="Rotate" class="btn btn-ghost w-8 h-8 min-h-0 p-0 text-white transition-colors hover:bg-white/10" onclick={(e) => { e.stopPropagation(); ctrl.rotateVideo(); }} onmousedown={(e) => e.preventDefault()}>
 													<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
 														<path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-9-9c2.48 0 4.74.99 6.36 2.59M21 3v6h-6" />

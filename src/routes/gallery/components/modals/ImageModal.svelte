@@ -11,7 +11,9 @@
 		totalImages = 0,
 		hasMore = false,
 		currentPage = 0,
-		loadFolder
+		loadFolder,
+		isGrouped = false,
+		onSwitchToPagination
 	}: {
 		isModalOpen: boolean;
 		selectedImageIndex: number;
@@ -20,6 +22,8 @@
 		hasMore: boolean;
 		currentPage: number;
 		loadFolder: (reset: boolean, page: number, append?: boolean) => Promise<void>;
+		isGrouped?: boolean;
+		onSwitchToPagination?: () => Promise<void>;
 	} = $props();
 
 	const imgState = createImageModalState({
@@ -31,7 +35,9 @@
 		get totalImages() { return totalImages; },
 		get hasMore() { return hasMore; },
 		get currentPage() { return currentPage; },
-		loadFolder
+		loadFolder,
+		get isGrouped() { return isGrouped; },
+		onSwitchToPagination: async () => { if (onSwitchToPagination) await onSwitchToPagination(); }
 	});
 
 	let modalContainer: HTMLElement | null = $state(null);

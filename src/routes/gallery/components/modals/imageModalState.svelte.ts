@@ -15,6 +15,8 @@ export function createImageModalState(props: {
 	get hasMore(): boolean;
 	get currentPage(): number;
 	loadFolder: (reset: boolean, page: number, append?: boolean) => Promise<void>;
+	get isGrouped(): boolean;
+	onSwitchToPagination: () => Promise<void>;
 }) {
 	// UI & Image State
 	let zoomLevel = $state(1);
@@ -378,8 +380,13 @@ export function createImageModalState(props: {
 		return item && !item.isDir && !item.isCbz && !item.isVideo && !item.isAudio && !item.isPdf && !item.isEpub;
 	}
 
-	function nextImage() {
+	async function nextImage() {
 		let nextIdx = props.selectedImageIndex + 1;
+		
+		if (props.isGrouped && nextIdx >= props.loadedImages.length && props.onSwitchToPagination) {
+			await props.onSwitchToPagination();
+		}
+
 		while (nextIdx < props.loadedImages.length) {
 			if (isImage(props.loadedImages[nextIdx])) {
 				props.selectedImageIndex = nextIdx;
@@ -389,7 +396,7 @@ export function createImageModalState(props: {
 			nextIdx++;
 		}
 		
-		if (props.hasMore) {
+		if (props.hasMore && !props.isGrouped) {
 			props.loadFolder(false, props.currentPage + 1, true).then(() => {
 				nextImage();
 			});

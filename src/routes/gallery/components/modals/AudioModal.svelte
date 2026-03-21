@@ -13,7 +13,10 @@
 		totalImages,
 		hasMore,
 		currentPage,
-		loadFolder
+		loadFolder,
+		isGrouped = false,
+		onSwitchToPagination,
+		onSwitchToVideo
 	}: {
 		isModalOpen: boolean;
 		selectedImageIndex: number;
@@ -22,6 +25,9 @@
 		hasMore: boolean;
 		currentPage: number;
 		loadFolder: (reset: boolean, page: number, append?: boolean) => Promise<void>;
+		isGrouped?: boolean;
+		onSwitchToPagination?: () => Promise<void>;
+		onSwitchToVideo?: () => void;
 	} = $props();
 
 	const ctrl = createAudioController();
@@ -55,18 +61,39 @@
 		if (e.key === 'm') ctrl.toggleMute();
 	}
 
+	function isAudioOrVideo(item: ImageFile) {
+		return item && !item.isDir && !item.isCbz && !item.isPdf && !item.isEpub && (item.isAudio || item.isVideo);
+	}
+
 	function prev() {
-		if (selectedImageIndex > 0) {
-			selectedImageIndex--;
+		let prevIdx = selectedImageIndex - 1;
+		while (prevIdx >= 0) {
+			if (isAudioOrVideo(loadedImages[prevIdx])) {
+				selectedImageIndex = prevIdx;
+				return;
+			}
+			prevIdx--;
 		}
 	}
 
 	async function next() {
-		if (selectedImageIndex < loadedImages.length - 1) {
-			selectedImageIndex++;
-		} else if (hasMore) {
+		let nextIdx = selectedImageIndex + 1;
+		
+		if (isGrouped && nextIdx >= loadedImages.length && onSwitchToPagination) {
+			await onSwitchToPagination();
+		}
+
+		while (nextIdx < loadedImages.length) {
+			if (isAudioOrVideo(loadedImages[nextIdx])) {
+				selectedImageIndex = nextIdx;
+				return;
+			}
+			nextIdx++;
+		}
+
+		if (hasMore && !isGrouped) {
 			await loadFolder(false, currentPage + 1, true);
-			selectedImageIndex++;
+			next();
 		}
 	}
 
@@ -286,6 +313,19 @@
 						>
 							<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
 						</button>
+
+						{#if currentAudio?.isVideo && onSwitchToVideo}
+						<button 
+							class="ml-2 transition-all active:scale-90 focus:outline-none text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] hover:scale-110" 
+							onclick={onSwitchToVideo}
+							title="Switch To Video Mode"
+							onmousedown={(e) => e.preventDefault()}
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+							</svg>
+						</button>
+						{/if}
 
 						<!-- Loop Toggle -->
 						<button 
