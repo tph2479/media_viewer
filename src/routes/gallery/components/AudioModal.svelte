@@ -121,6 +121,202 @@
 	});
 
 	let progress = $derived(duration ? (currentTime / duration) * 100 : 0);
+
+	// Audio Analysis Engine
+	let audioCtx: AudioContext | null = null;
+	let analyser: AnalyserNode | null = null;
+	let dataArray: Uint8Array | null = null;
+	let animationFrame: number;
+	let sourceNode: MediaElementAudioSourceNode | null = null;
+
+	let excitement = $state(0);
+	let canvas: HTMLCanvasElement | null = $state(null);
+	let history: number[] = $state([]); 
+	let timeData: Uint8Array = new Uint8Array(256); // Raw wave buffer
+	let lastDrawTime = 0;
+
+
+	function initAudioContext() {
+		if (audioCtx || !audioPlayer) return;
+
+		try {
+			audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+			analyser = audioCtx.createAnalyser();
+			analyser.fftSize = 256; 
+			analyser.smoothingTimeConstant = 0.5; // Balanced smoothing for reactive but fluid movement
+			
+			sourceNode = audioCtx.createMediaElementSource(audioPlayer);
+			sourceNode.connect(analyser);
+			analyser.connect(audioCtx.destination);
+			
+			dataArray = new Uint8Array(analyser.frequencyBinCount);
+			updateExcitement();
+		} catch (e) {
+			console.error("Audio Context failed:", e);
+		}
+	}
+
+	let lastVal = 0;
+	let smoothedVal = 0;
+	let yVel = 0; 
+	
+	// 'Smart Climax' detection variables
+	let energyHistory: number[] = new Array(200).fill(0); 
+	let isClimax = $state(false);
+	let climaxIntensity = $state(0);
+	function updateExcitement() {
+		if (!analyser || !dataArray || !canvas) return;
+		
+		const now = performance.now();
+		if (now - lastDrawTime < 30) { // Stable 33 FPS
+			animationFrame = requestAnimationFrame(updateExcitement);
+			return;
+		}
+		lastDrawTime = now;
+
+		// Now sampling Treble (High Frequencies) instead of Time Domain Raw Wave
+		analyser.getByteFrequencyData(dataArray);
+		
+		let peak = 0;
+		// Scan Treble range (High frequency bins 60 to 110)
+		for(let i=60; i<110; i++) {
+			if (dataArray[i] > peak) peak = dataArray[i];
+		}
+		
+		const rawVal = peak / 255;
+		
+		const currentVal = Math.pow(rawVal, 1.4) * 1.8; 
+		const attack = Math.max(0, currentVal - lastVal);
+		const targetVal = Math.min(1.0, currentVal + (attack * 1.2)); 
+		lastVal = currentVal;
+		
+		// Smart Climax Detection (Heuristic AI)
+		energyHistory.push(rawVal);
+		energyHistory.shift();
+		const baseline = energyHistory.reduce((a, b) => a + b, 0) / energyHistory.length;
+		
+		// If current energy is 40% higher than 6-second average, it's a climax
+		const threshold = Math.max(0.1, baseline * 1.4);
+		isClimax = rawVal > threshold && rawVal > 0.3;
+		
+		// Smooth climax intensity for visual transitions
+		climaxIntensity = climaxIntensity * 0.9 + (isClimax ? 1 : 0) * 0.1;
+		
+		// Spring Physics
+		const stiffness = 0.15;
+		const damping = 0.8;
+		const force = (targetVal - smoothedVal) * stiffness;
+		yVel = (yVel + force) * damping;
+		smoothedVal += yVel;
+		
+		history.push(smoothedVal);
+		if (history.length > 500) history.shift();
+		
+		drawGraph();
+		animationFrame = requestAnimationFrame(updateExcitement);
+	}
+
+	function drawGraph() {
+		if (!canvas) return;
+		const ctx = canvas.getContext('2d', { alpha: true });
+		if (!ctx) return;
+
+		const w = canvas.width;
+		const h = canvas.height;
+		const step = 2.0; 
+		
+		ctx.clearRect(0, 0, w, h);
+		ctx.lineJoin = 'round';
+		ctx.lineCap = 'round';
+
+		const currentCount = history.length;
+		const headX = w - 120; // Leave leading space in front of the dot
+		
+		// Brighter ethereal trail
+		const lineGradient = ctx.createLinearGradient(0, 0, w, 0);
+		lineGradient.addColorStop(0, "rgba(255, 255, 255, 0)");      
+		lineGradient.addColorStop(0.5, "rgba(255, 255, 255, 0.2)");  
+		lineGradient.addColorStop(1, "rgba(255, 255, 255, 0.5)"); // More visible history
+
+		ctx.beginPath();
+		ctx.strokeStyle = lineGradient;
+		ctx.lineWidth = 1.1;
+		
+		for (let i = 0; i < currentCount; i++) {
+			const indexFromHead = (currentCount - 1 - i);
+			const x = headX - (indexFromHead * step);
+			const y = h - (history[i] * h * 0.5) - 40; 
+			
+			if (x < -20) continue;
+			if (i === 0) ctx.moveTo(x, y);
+			else ctx.lineTo(x, y);
+		}
+		ctx.stroke();
+
+		// Floating Glow Point (Right-aligned)
+		const headY = h - (history[currentCount - 1] * h * 0.5) - 40;
+
+		// Large Outer Glow
+		ctx.beginPath();
+		ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
+		ctx.lineWidth = 20;
+		ctx.filter = 'blur(15px)';
+		ctx.arc(headX, headY, 2, 0, Math.PI * 2);
+		ctx.stroke();
+
+		// Core Glow
+		ctx.beginPath();
+		ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+		ctx.lineWidth = 10;
+		ctx.filter = 'blur(6px)';
+		ctx.arc(headX, headY, 1, 0, Math.PI * 2);
+		ctx.stroke();
+		ctx.filter = 'none';
+
+		// Solid Center Point (Flying Dot)
+		ctx.beginPath();
+		
+		// Climax Color Logic: White -> Gold/Pink when things get intense
+		const r = 255;
+		const g = 255 - (climaxIntensity * 55); 
+		const b = 255 - (climaxIntensity * 100);
+		ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${0.9 + climaxIntensity * 0.1})`;
+		
+		// Dynamic Size: Dot gets bigger during climax
+		const baseSize = 3.5;
+		const dynamicSize = baseSize + (climaxIntensity * 5);
+		ctx.arc(headX, headY, dynamicSize, 0, Math.PI * 2);
+		ctx.fill();
+
+		// Extra 'Shockwave' Glow during peak hits
+		if (climaxIntensity > 0.3) {
+			ctx.beginPath();
+			ctx.strokeStyle = `rgba(255, 100, 200, ${climaxIntensity * 0.3})`;
+			ctx.lineWidth = 2;
+			ctx.filter = 'blur(10px)';
+			ctx.arc(headX, headY, dynamicSize * 4, 0, Math.PI * 2);
+			ctx.stroke();
+			ctx.filter = 'none';
+		}
+	}
+
+	function handlePlay() {
+		isPlaying = true;
+		if (!audioCtx) {
+			initAudioContext();
+		} else if (audioCtx.state === 'suspended') {
+			audioCtx.resume();
+		}
+	}
+
+	onDestroy(() => {
+		if (typeof document !== 'undefined') {
+			document.body.style.overflow = '';
+			window.removeEventListener('keydown', handleKeydown);
+		}
+		if (animationFrame) cancelAnimationFrame(animationFrame);
+		if (audioCtx) audioCtx.close();
+	});
 </script>
 
 <div 
@@ -135,7 +331,7 @@
 			<img 
 				src={`/api/image?path=${encodeURIComponent(currentAudio?.path || '')}&thumbnail=true`} 
 				alt=""
-				class="w-full h-full object-cover blur-[100px] scale-110 opacity-80 saturate-[1.8]"
+				class="w-full h-full object-cover opacity-20 saturate-[1.2]"
 				transition:fade={{ duration: 1000 }}
 				onerror={() => imgFailed = true}
 			/>
@@ -146,21 +342,15 @@
 		<div class="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)]"></div>
 	</div>
 
-	<!-- Optimized Liquid Wave Visualizer (Ultra-low Resource) -->
-	<div class="absolute bottom-0 left-0 right-0 h-48 md:h-72 pointer-events-none z-0 overflow-hidden opacity-30 select-none contain-strict">
-		<div class="wave-group {isPlaying ? 'running' : 'paused'}">
-			<svg class="wave-svg" viewBox="0 0 1440 320" preserveAspectRatio="none">
-				<path 
-					fill="rgba(255,255,255,0.3)" 
-					d="M0,160 C320,300 420,10 720,160 C1020,310 1120,20 1440,160 V320 H0 Z"
-				></path>
-			</svg>
-			<svg class="wave-svg" viewBox="0 0 1440 320" preserveAspectRatio="none">
-				<path 
-					fill="rgba(255,255,255,0.3)" 
-					d="M0,160 C320,300 420,10 720,160 C1020,310 1120,20 1440,160 V320 H0 Z"
-				></path>
-			</svg>
+	<!-- Centered, Width-Limited Canvas Visualizer -->
+	<div class="absolute bottom-12 left-0 right-0 h-40 pointer-events-none z-0 flex justify-center">
+		<div class="w-full max-w-2xl h-full opacity-40">
+			<canvas 
+				bind:this={canvas} 
+				width="800" 
+				height="160" 
+				class="w-full h-full"
+			></canvas>
 		</div>
 	</div>
 
@@ -171,8 +361,8 @@
 	>
 		<!-- Cover Art Panel -->
 		<div class="relative group perspective-1000 w-full max-w-[240px] md:max-w-[420px] aspect-square flex-shrink-0">
-			<!-- Vivid Glow -->
-			<div class="absolute inset-4 bg-white/20 blur-[100px] rounded-full opacity-40 group-hover:opacity-100 transition-opacity"></div>
+			<!-- Subtle Glow -->
+			<div class="absolute inset-4 bg-white/5 rounded-full opacity-0 group-hover:opacity-20 transition-opacity"></div>
 			
 			<!-- Card wrapper -->
 			<div class="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl border border-white/20 bg-black/40 transition-all duration-700 group-hover:scale-105">
@@ -197,11 +387,11 @@
 			<!-- Record Edge -->
 			<div 
 				class="absolute -right-6 top-1/2 -translate-y-1/2 w-[85%] h-[85%] bg-black rounded-full border border-white/10 shadow-2xl -z-10 transition-all duration-1000 {isPlaying ? 'translate-x-16 opacity-100' : 'translate-x-0 opacity-0'}"
-				style="background: repeating-radial-gradient(circle at center, #111, #111 2px, #000 3px, #000 5px);"
+				style="background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);"
 			>
 				<div class="absolute inset-[37.5%] rounded-full bg-black/60 border border-white/10 flex items-center justify-center overflow-hidden">
 					{#if !imgFailed}
-						<img src={`/api/image?path=${encodeURIComponent(currentAudio?.path || '')}&thumbnail=true`} alt="" class="w-full h-full object-cover opacity-50 animate-spin-slow" />
+						<img src={`/api/image?path=${encodeURIComponent(currentAudio?.path || '')}&thumbnail=true`} alt="" class="w-full h-full object-cover opacity-50 animate-spin-slow will-change-transform" />
 					{/if}
 				</div>
 			</div>
@@ -227,7 +417,7 @@
 			</div>
 
 			<!-- Control Pad -->
-			<div class="bg-white/[0.04] backdrop-blur-3xl border border-white/10 rounded-3xl p-8 space-y-8 shadow-2xl transition-all hover:bg-white/[0.06]">
+			<div class="bg-zinc-900/60 border border-white/10 rounded-3xl p-8 space-y-8 shadow-2xl transition-all hover:bg-zinc-900/80">
 				
 				<!-- Seekbar -->
 				<div class="space-y-4">
@@ -330,8 +520,9 @@
 	<audio
 		bind:this={audioPlayer}
 		src={`/api/image?path=${encodeURIComponent(currentAudio?.path || '')}`}
+		crossorigin="anonymous"
 		autoplay
-		onplay={() => isPlaying = true}
+		onplay={handlePlay}
 		onpause={() => isPlaying = false}
 		ontimeupdate={(e) => currentTime = e.currentTarget.currentTime}
 		onloadedmetadata={(e) => { duration = e.currentTarget.duration; if (audioPlayer) audioPlayer.volume = volume; }}
@@ -343,6 +534,7 @@
 	:global(body) {
 		overflow: hidden;
 	}
+	/* GPU Efficient Visualizer */
 	.animate-spin-slow {
 		animation: spin 80s linear infinite;
 	}
@@ -350,56 +542,12 @@
 		from { transform: rotate(0deg); }
 		to { transform: rotate(360deg); }
 	}
-	.perspective-1000 {
-		perspective: 1000px;
-	}
-
-	input[type="range"]::-webkit-slider-thumb {
-		appearance: none;
-		-webkit-appearance: none;
-		width: 14px;
-		height: 14px;
-		background: #fff;
-		border-radius: 50%;
-		cursor: pointer;
-	}
-
-	/* WAVE SYSTEM - ULTRA LOW RESOURCE VERSION */
-	.wave-group {
-		position: absolute;
-		left: 0;
-		bottom: 0;
-		width: 200%;
-		height: 100%;
-		display: flex;
-		animation: wave-slide 20s linear infinite;
-		will-change: transform;
-	}
-
-	.wave-svg {
-		width: 50%;
-		height: 100%;
-		flex-shrink: 0;
-	}
-
-	.paused {
-		animation-play-state: paused !important;
-	}
-	.running {
-		animation-play-state: running !important;
-	}
-
-	@keyframes wave-slide {
-		from { transform: translate3d(0, 0, 0); }
-		to { transform: translate3d(-50%, 0, 0); }
-	}
 
 	/* Performance hints */
 	.contain-strict {
 		contain: strict;
 	}
-	svg, img, .wave-group {
+	svg, img {
 		backface-visibility: hidden;
-		perspective: 1000px;
 	}
 </style>
