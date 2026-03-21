@@ -175,8 +175,6 @@ export async function handleListing(
         lastModified: item.mtime
     }));
 
-    // @ts-ignore
-    if (globalThis.Bun) { globalThis.Bun.gc(true); }
 
     if (isGrouped) {
         return json({

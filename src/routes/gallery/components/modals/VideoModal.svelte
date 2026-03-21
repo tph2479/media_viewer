@@ -231,7 +231,7 @@
 		role="dialog"
 		aria-modal="true"
 		tabindex="-1"
-		class="fixed inset-0 z-[300] bg-black/40 backdrop-blur-md flex flex-col h-full w-full overflow-hidden outline-none animate-in fade-in duration-300"
+		class="fixed inset-0 z-[300] bg-black/80 flex flex-col h-full w-full overflow-hidden outline-none animate-in fade-in duration-300"
 		onmousemove={ctrl.handleMouseMoveVisibility}
 	>
 		<!-- Main View Area -->
@@ -344,7 +344,7 @@
 								<div class="pointer-events-auto shrink-0 ml-2">
 									<button 
 										aria-label="Close" 
-										class="btn rounded-xl w-12 h-12 min-h-0 p-0 bg-zinc-900/95 hover:bg-zinc-800 text-white border border-white/10 backdrop-blur-xl shadow-2xl transition-all hover:scale-110" 
+										class="btn rounded-xl w-12 h-12 min-h-0 p-0 bg-zinc-900/95 hover:bg-zinc-800 text-white border border-white/10 shadow-2xl transition-all hover:scale-110" 
 										onclick={(e) => { e.stopPropagation(); closeModal(); }} 
 										onmousedown={(e) => e.preventDefault()}
 									>

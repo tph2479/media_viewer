@@ -94,8 +94,6 @@ export async function GET({ url, request }: RequestEvent) {
 }
 
 export async function DELETE() {
-	// @ts-ignore
-	if (globalThis.Bun) globalThis.Bun.gc(true);
 	if (fs.existsSync(THUMB_CACHE_DIR)) {
 		await fsp.rm(THUMB_CACHE_DIR, { recursive: true, force: true });
 		await fsp.mkdir(THUMB_CACHE_DIR, { recursive: true });
