@@ -107,8 +107,6 @@
 				fetchpriority={index < 12 ? 'high' : 'auto'}
 				alt={img.name}
 				class="absolute inset-0 w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-700 ease-out"
-				onload={(e) => { (e.currentTarget as HTMLElement).style.display = ''; }}
-				onerror={(e) => handleImageError(e, img.path)}
 			/>
 			<div class="absolute top-2 left-2 z-20">
 				<div class="bg-black/40 backdrop-blur-md p-1.5 rounded-lg border border-white/20 shadow-lg">
@@ -129,8 +127,6 @@
 				fetchpriority="auto"
 				alt={img.name}
 				class="absolute inset-0 w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-700 ease-out z-10"
-				onload={(e) => { (e.currentTarget as HTMLElement).style.display = ''; }}
-				onerror={(e) => handleImageError(e, img.path)}
 			/>
 			<div class="absolute top-2 left-2 z-20">
 				<div class="bg-primary/80 backdrop-blur-md p-1.5 rounded-lg border border-white/20 shadow-lg group-hover:bg-primary transition-colors">
@@ -168,8 +164,6 @@
 				fetchpriority={index < 12 ? 'high' : 'auto'}
 				alt={img.name}
 				class="absolute inset-0 w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-700 ease-out"
-				onload={(e) => { (e.currentTarget as HTMLElement).style.display = ''; }}
-				onerror={(e) => handleImageError(e, img.path)}
 			/>
 		{/if}
 	</button>

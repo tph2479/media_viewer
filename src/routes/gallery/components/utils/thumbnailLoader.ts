@@ -42,7 +42,7 @@ export function lazyThumbnail(node: HTMLImageElement, url: string) {
             }
         } catch (e) {
             if (!abortController.signal.aborted) {
-				node.dispatchEvent(new Event('error'));
+				node.style.display = 'none'; // The thumbnail doesn't exist (e.g. audio without cover art), hide it to reveal background SVG
 			}
         }
     }

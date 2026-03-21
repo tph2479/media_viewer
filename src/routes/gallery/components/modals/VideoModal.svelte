@@ -202,10 +202,12 @@
 			onmousemove={ctrl.handleMouseMoveVisibility}
 		>
 			{#if currentItem}
-				<div class="relative w-full h-full flex items-center justify-center pointer-events-auto bg-black">
+				<div class="relative w-full h-full flex items-center justify-center pointer-events-auto bg-black" bind:clientWidth={s.containerWidth} bind:clientHeight={s.containerHeight}>
 					<!-- svelte-ignore a11y_media_has_caption -->
 					<video 
 						bind:this={s.videoElement}
+						bind:videoWidth={s.videoWidth}
+						bind:videoHeight={s.videoHeight}
 						id="modal-video-player"
 						src={s.currentVideoSrc}
 						autoplay
@@ -218,7 +220,7 @@
 						bind:volume={s.videoVolume}
 						loop={s.isVideoLoop}
 						class="w-full h-full object-contain pointer-events-auto transition-transform duration-300"
-						style="transform: rotate({s.videoRotation}deg) scale({(s.videoRotation % 180 !== 0) ? (s.videoElement ? Math.min(s.videoElement.parentElement!.clientWidth / s.videoElement.videoHeight, s.videoElement.parentElement!.clientHeight / s.videoElement.videoWidth) / Math.min(s.videoElement.parentElement!.clientWidth / s.videoElement.videoWidth, s.videoElement.parentElement!.clientHeight / s.videoElement.videoHeight) : 1) : 1});"
+						style="transform: rotate({s.videoRotation}deg) scale({(s.videoRotation % 180 !== 0) ? ((s.videoWidth && s.videoHeight && s.containerWidth && s.containerHeight) ? Math.min(s.containerWidth / s.videoHeight, s.containerHeight / s.videoWidth) / Math.min(s.containerWidth / s.videoWidth, s.containerHeight / s.videoHeight) : 1) : 1});"
 						onclick={(e) => { e.stopPropagation(); }}
 						ondblclick={(e) => { e.stopPropagation(); ctrl.toggleFullscreen(); }}
 						oncanplay={() => { s.isVideoPaused = false; }}
