@@ -1,14 +1,11 @@
 <script lang="ts">
 	import { onMount, onDestroy, tick } from 'svelte';
-	import WebtoonReader from './components/WebtoonReader.svelte';
-	import ImageModal from './components/ImageModal.svelte';
-	import VideoModal from './components/VideoModal.svelte';
-	import FolderPicker from './components/FolderPicker.svelte';
-	import GalleryToolbar from './components/GalleryToolbar.svelte';
-	import GalleryGrid from './components/GalleryGrid.svelte';
-	import AudioModal from './components/AudioModal.svelte';
-	import PdfReader from './components/PdfReader.svelte';
-	import type { ImageFile } from './components/utils';
+	import GalleryToolbar from './components/toolbar/GalleryToolbar.svelte';
+	import GalleryGrid from './components/grid/GalleryGrid.svelte';
+	import EmptyState from './components/grid/EmptyState.svelte';
+	import GroupViewHeader from './components/grid/GroupViewHeader.svelte';
+	import GalleryModals from './components/modals/GalleryModals.svelte';
+	import type { ImageFile } from './components/utils/utils';
 
 	// ── Core state ────────────────────────────────────────────────────────────
 	let folderPath = $state('C:\\Users');
@@ -290,9 +287,14 @@
 		}
 	}
 
-	function openModal(index: number) {
-		const img = loadedImages[index];
+	function openModal(index: number, items?: ImageFile[]) {
+		const sourceList = items || loadedImages;
+		const img = sourceList[index];
 		if (!img) return;
+
+		if (items) {
+			loadedImages = items;
+		}
 		
 		selectedImageIndex = index;
 		if (img.isVideo) {
@@ -437,26 +439,14 @@
 
 		<!-- Views -->
 		{#if !isFolderSelected && !isLoading && !errorMsg}
-			<div class="flex-1 flex flex-col items-center justify-center opacity-60 bg-base-200/30 rounded-3xl border-2 border-dashed border-base-content/10 p-10 text-center animate-in fade-in duration-700 h-full min-h-[400px]">
-				<svg xmlns="http://www.w3.org/2000/svg" class="h-20 w-20 mb-4 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" /></svg>
-				<p class="text-lg font-black mb-1 text-base-content uppercase tracking-tighter">Ready to Explorer</p>
-				<p class="text-xs max-w-sm mb-8 opacity-70 font-bold uppercase tracking-widest leading-relaxed">Please select a directory to index your media library.</p>
-				<button class="btn btn-primary rounded-2xl px-10 font-black uppercase tracking-widest" onclick={() => (isFolderPickerOpen = true)}>Open Picker</button>
-			</div>
+			<EmptyState onOpenPicker={() => (isFolderPickerOpen = true)} />
 		{:else if isFolderSelected}
 			{#if currentExclusiveType}
-				<div class="mb-4 flex items-center justify-between bg-base-200/50 backdrop-blur-md px-4 py-3 rounded-2xl border border-base-content/10 shadow-sm animate-in fade-in slide-in-from-top-2">
-					<div class="flex items-center gap-3">
-						<button class="btn btn-sm btn-circle btn-ghost" onclick={() => handleExitGroupView()} aria-label="Back to Group View">
-							<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-base-content" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-						</button>
-						<span class="font-bold tracking-tight uppercase text-sm text-base-content/80">Viewing: <span class="text-primary">{currentExclusiveType}</span></span>
-					</div>
-				</div>
+				<GroupViewHeader {currentExclusiveType} onExit={handleExitGroupView} />
 			{/if}
 
 			<GalleryGrid
-				{loadedImages}
+				bind:loadedImages
 				{isGrouped}
 				{groupedData}
 				totalImages={totalMedia}
@@ -475,91 +465,32 @@
 </div>
 
 <!-- Modals -->
-{#if isWebtoonMode}
-	<WebtoonReader
-		bind:isWebtoonMode
-		folderPath={webtoonActivePath}
-		onCloseCallback={handleWebtoonClose}
-	/>
-{/if}
-
-{#if isImageModalOpen && loadedImages.length > selectedImageIndex}
-	<ImageModal
-		bind:isModalOpen={isImageModalOpen}
-		bind:selectedImageIndex
-		{loadedImages}
-		totalImages={totalImagesCount} 
-		{hasMore}
-		{currentPage}
-		{loadFolder}
-	/>
-{/if}
-
-{#if isPdfReaderOpen}
-	<PdfReader
-		bind:isPdfMode={isPdfReaderOpen}
-		pdfPath={selectedPdfPath}
-		onCloseCallback={() => selectedPdfPath = ''}
-	/>
-{/if}
-
-{#if isVideoModalOpen && loadedImages.length > selectedImageIndex}
-	<VideoModal
-		bind:isModalOpen={isVideoModalOpen}
-		bind:selectedImageIndex
-		{loadedImages}
-		totalImages={totalVideosCount} 
-		{hasMore}
-		{currentPage}
-		{loadFolder}
-	/>
-{/if}
-
-{#if isAudioModalOpen && loadedImages.length > selectedImageIndex}
-	<AudioModal
-		bind:isModalOpen={isAudioModalOpen}
-		bind:selectedImageIndex
-		{loadedImages}
-		totalImages={totalAudioCount} 
-		{hasMore}
-		{currentPage}
-		{loadFolder}
-	/>
-{/if}
-
-{#if isFolderPickerOpen}
-	<FolderPicker
-		bind:isFolderPickerOpen
-		bind:folderPath
-		{availableDrives}
-		{isDrivesLoading}
-		onRefreshDrives={refreshDrives}
-		onSelect={() => {
-			const savedPage = folderPageHistory[folderPath] || 0;
-			loadFolder(true, savedPage);
-		}}
-		onOpenFile={(path, type) => {
-			pendingFile = { path, type };
-		}}
-	/>
-{/if}
-
-<!-- No Images Popup (Toast style) -->
-{#if isNoImagesPopupOpen}
-	<div class="fixed bottom-6 right-6 z-[1000] animate-in slide-in-from-right-10 fade-in duration-300">
-		<div 
-			class="bg-base-100 border border-base-content/10 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] rounded-2xl p-5 flex items-center gap-4 max-w-sm cursor-pointer hover:bg-base-100/90 transition-colors ring-1 ring-base-content/5"
-			onclick={() => { isNoImagesPopupOpen = false; if (noImagesPopupTimer) { clearTimeout(noImagesPopupTimer); noImagesPopupTimer = null; } }}
-		>
-			<div class="w-12 h-12 rounded-xl bg-warning/10 flex items-center justify-center flex-shrink-0">
-				<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-				</svg>
-			</div>
-			<div class="flex flex-col text-left">
-				<h3 class="font-black text-sm uppercase tracking-tight text-base-content/90">No Images Found</h3>
-				<p class="text-[11px] opacity-60 font-bold uppercase tracking-widest leading-none mt-1">Directory has no compatible media</p>
-			</div>
-		</div>
-	</div>
-{/if}
+<GalleryModals
+	bind:isWebtoonMode
+	{webtoonActivePath}
+	{handleWebtoonClose}
+	bind:isImageModalOpen
+	bind:selectedImageIndex
+	bind:loadedImages
+	{totalImagesCount}
+	{hasMore}
+	{currentPage}
+	{loadFolder}
+	bind:isPdfReaderOpen
+	bind:selectedPdfPath
+	bind:isVideoModalOpen
+	{totalVideosCount}
+	bind:isAudioModalOpen
+	{totalAudioCount}
+	bind:isFolderPickerOpen
+	bind:folderPath
+	{availableDrives}
+	{isDrivesLoading}
+	{refreshDrives}
+	{folderPageHistory}
+	onOpenFile={(path, type) => {
+		pendingFile = { path, type };
+	}}
+	bind:isNoImagesPopupOpen
+	bind:noImagesPopupTimer
+/>

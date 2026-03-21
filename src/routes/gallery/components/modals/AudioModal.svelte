@@ -2,13 +2,13 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { fade, fly, scale } from 'svelte/transition';
 	import { quintOut } from 'svelte/easing';
-	import type { ImageFile } from './utils';
-	import { formatDate, formatBytes } from './utils';
+	import type { ImageFile } from '../utils/utils';
+	import { formatDate, formatBytes } from '../utils/utils';
 
 	let {
 		isModalOpen = $bindable(),
 		selectedImageIndex = $bindable(),
-		loadedImages,
+		loadedImages = $bindable(),
 		totalImages,
 		hasMore,
 		currentPage,

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { tick, onMount, onDestroy } from 'svelte';
-	import { isVideoFile, type ImageFile } from './utils';
+	import { isVideoFile, type ImageFile } from '../utils/utils';
 
 	let {
 		isWebtoonMode = $bindable(),

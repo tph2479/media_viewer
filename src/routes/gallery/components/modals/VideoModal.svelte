@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { isVideoFile, formatBytes, formatDateTime, type ImageFile } from './utils';
+	import { isVideoFile, formatBytes, formatDateTime, type ImageFile } from '../utils/utils';
 	import { onDestroy } from 'svelte';
 
 	// Props using Svelte 5 runes
 	let {
 		isModalOpen = $bindable(),
 		selectedImageIndex = $bindable(),
-		loadedImages = [],
+		loadedImages = $bindable(),
 		totalImages = 0,
 		hasMore = false,
 		currentPage = 0,

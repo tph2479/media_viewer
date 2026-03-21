@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ImageFile } from './utils';
+	import type { ImageFile } from '../utils/utils';
 
 	let {
 		folderPath = $bindable(),
