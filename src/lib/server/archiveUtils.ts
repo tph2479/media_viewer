@@ -11,18 +11,31 @@ if (!fs.existsSync(THUMB_CACHE_DIR)) {
 	fs.mkdirSync(THUMB_CACHE_DIR, { recursive: true });
 }
 
-const HEIF_BRANDS = new Set(['heic', 'heix', 'hevc', 'mif1', 'msf1', 'heis', 'hevm', 'hevx', 'mif2', 'msf2', 'avif', 'avif', 'avis']);
+const HEIC_BRANDS = new Set(['heic', 'heix', 'hevc', 'hevx', 'mif1', 'mif2', 'msf1', 'msf2', 'heis', 'hevm']);
 
 let activeGenerations = 0;
 const MAX_CONCURRENT_THUMBS = 4;
 const generationQueue: (() => void)[] = [];
 const ongoingGenerations = new Map<string, Promise<any>>();
 
-export function isHeifBuffer(buf: Buffer): boolean {
+export function isHeicBuffer(buf: Buffer): boolean {
 	if (buf.length < 12) return false;
 	// Some HEIC/AVIF start with 00 00 00
 	if (buf[0] !== 0x00 || buf[1] !== 0x00 || buf[2] !== 0x00) {
 		// Also support some variations
+		if (!(buf[0] === 0x00 && buf[1] === 0x01 && buf[2] === 0x00)) return false;
+	}
+	const ftyp = buf.slice(4, 8).toString('ascii');
+	if (ftyp !== 'ftyp') return false;
+	const brand = buf.slice(8, 12).toString('ascii').trim().toLowerCase();
+	return HEIC_BRANDS.has(brand);
+}
+
+const HEIF_BRANDS = new Set(['heic', 'heix', 'hevc', 'hevx', 'mif1', 'mif2', 'msf1', 'msf2', 'heis', 'hevm', 'avif', 'avis']);
+
+export function isHeifBuffer(buf: Buffer): boolean {
+	if (buf.length < 12) return false;
+	if (buf[0] !== 0x00 || buf[1] !== 0x00 || buf[2] !== 0x00) {
 		if (!(buf[0] === 0x00 && buf[1] === 0x01 && buf[2] === 0x00)) return false;
 	}
 	const ftyp = buf.slice(4, 8).toString('ascii');
@@ -74,7 +87,7 @@ export async function getArchiveCover(archivePath: string, mtimeMs: number, sign
 		const buffer = Buffer.concat(chunks);
 		let sharpInput: any = buffer;
 
-		if (isHeifBuffer(buffer)) {
+		if (isHeicBuffer(buffer)) {
 			try {
 				const heicImport = await import('heic-convert');
 				const heicConvert = (heicImport.default || heicImport) as any;
