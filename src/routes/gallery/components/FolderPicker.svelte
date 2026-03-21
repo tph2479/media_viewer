@@ -40,7 +40,7 @@
 		isPickerLoading = true;
 		pickerError = '';
 		try {
-			const res = await fetch(`/api/directories?path=${encodeURIComponent(pathQuery)}`);
+			const res = await fetch(`/api/file?action=directories&path=${encodeURIComponent(pathQuery)}`);
 			const data = await res.json();
 			if (!res.ok) throw new Error(data.message || 'Error fetching directories');
 

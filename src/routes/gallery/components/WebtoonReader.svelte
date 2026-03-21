@@ -41,7 +41,7 @@
 			let hasMorePages = true;
 
 			while (hasMorePages) {
-				const res = await fetch(`/api/gallery?folder=${encodeURIComponent(folderPath)}&page=${page}&limit=${WEBTOON_PAGE_SIZE}&sort=name_asc&imagesOnly=true`);
+				const res = await fetch(`/api/file?action=gallery&folder=${encodeURIComponent(folderPath)}&page=${page}&limit=${WEBTOON_PAGE_SIZE}&sort=name_asc&imagesOnly=true`);
 				const data = await res.json();
 				if (!res.ok) throw new Error(data.message || "Error loading webtoon data");
 

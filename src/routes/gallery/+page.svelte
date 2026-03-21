@@ -118,7 +118,7 @@
 	async function refreshDrives() {
 		isDrivesLoading = true;
 		try {
-			const res = await fetch('/api/directories?path=');
+			const res = await fetch('/api/file?action=directories&path=');
 			const data = await res.json();
 			if (res.ok) availableDrives = data.directories;
 		} catch (e) {
@@ -218,7 +218,7 @@
 			}
 
 			const res = await fetch(
-				`/api/gallery?folder=${encodeURIComponent(targetPath)}&page=${currentPage}&limit=${PAGE_SIZE}&sort=${currentSort}&type=${mediaType}`
+				`/api/file?action=gallery&folder=${encodeURIComponent(targetPath)}&page=${currentPage}&limit=${PAGE_SIZE}&sort=${currentSort}&type=${mediaType}`
 			);
 			const data = await res.json();
 
@@ -331,7 +331,7 @@
 
 		isLoading = true;
 		try {
-			const res = await fetch(`/api/gallery?folder=${encodeURIComponent(folderPath)}&page=0&limit=1&imagesOnly=true`);
+			const res = await fetch(`/api/file?action=gallery&folder=${encodeURIComponent(folderPath)}&page=0&limit=1&imagesOnly=true`);
 			const data = await res.json();
 			if (data.total > 0) {
 				isWebtoonMode = true;
