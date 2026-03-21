@@ -24,6 +24,7 @@
 	} = $props();
 
 	let audioPlayer: HTMLAudioElement | null = $state(null);
+	let isLooping = $state(false);
 	let isPlaying = $state(false);
 	let currentTime = $state(0);
 	let duration = $state(0);
@@ -131,7 +132,7 @@
 
 	let excitement = $state(0);
 	let canvas: HTMLCanvasElement | null = $state(null);
-	let history: number[] = $state([]); 
+	let history: {y: number, b: number, m: number, t: number, h: number}[] = $state([]); 
 	let timeData: Uint8Array = new Uint8Array(256); // Raw wave buffer
 	let lastDrawTime = 0;
 
@@ -160,10 +161,16 @@
 	let smoothedVal = 0;
 	let yVel = 0; 
 	
-	// 'Smart Climax' detection variables
+	// 'Smart Climax' & Multi-Band detection variables
 	let energyHistory: number[] = new Array(200).fill(0); 
+	let prevDataArray = new Uint8Array(128);
 	let isClimax = $state(false);
 	let climaxIntensity = $state(0);
+	
+	// Band intensities for 'Smart' visuals
+	let bassIntensity = $state(0);
+	let midIntensity = $state(0);
+	let trebleIntensity = $state(0);
 	function updateExcitement() {
 		if (!analyser || !dataArray || !canvas) return;
 		
@@ -185,22 +192,43 @@
 		
 		const rawVal = peak / 255;
 		
-		const currentVal = Math.pow(rawVal, 1.4) * 1.8; 
-		const attack = Math.max(0, currentVal - lastVal);
-		const targetVal = Math.min(1.0, currentVal + (attack * 1.2)); 
-		lastVal = currentVal;
+		// 1. Multi-Band Sensory Processing
+		let bassSum = 0; for(let i=0; i<8; i++) bassSum += dataArray[i];
+		let midSum = 0; for(let i=10; i<50; i++) midSum += dataArray[i];
+		let trebleSum = 0; for(let i=60; i<110; i++) trebleSum += dataArray[i];
 		
-		// Smart Climax Detection (Heuristic AI)
+		// Normalize bands (approximate weights)
+		const currentBass = Math.pow(bassSum / (8 * 255), 1.2) * 1.5;
+		const currentMid = Math.pow(midSum / (40 * 255), 1.4) * 1.2;
+		const currentTreble = Math.pow(trebleSum / (50 * 255), 1.6) * 2.0;
+
+		// Smooth bands for visuals
+		bassIntensity = bassIntensity * 0.8 + currentBass * 0.2;
+		midIntensity = midIntensity * 0.8 + currentMid * 0.2;
+		trebleIntensity = trebleIntensity * 0.7 + currentTreble * 0.3;
+
+		// Vertical target driven primarily by Mid + Treble energy
+		const targetVal = Math.min(1.0, (currentMid * 0.7 + currentTreble * 0.3) * 1.4); 
+		
+		// 2. Smart Climax Detection (Spectral Flux + Energy Variance)
+		let flux = 0;
+		for(let i=0; i<dataArray.length; i++) {
+			flux += Math.max(0, dataArray[i] - prevDataArray[i]);
+		}
+		prevDataArray.set(dataArray);
+
 		energyHistory.push(rawVal);
 		energyHistory.shift();
 		const baseline = energyHistory.reduce((a, b) => a + b, 0) / energyHistory.length;
 		
-		// If current energy is 40% higher than 6-second average, it's a climax
-		const threshold = Math.max(0.1, baseline * 1.4);
-		isClimax = rawVal > threshold && rawVal > 0.3;
+		// Climax combines raw energy vs baseline AND spectral flux (sudden density)
+		const fluxFactor = Math.min(2.0, flux / 350); // Slightly more sensitive flux
+		const energyFactor = rawVal / (Math.max(0.05, baseline) * 1.3); // Lower threshold
 		
-		// Smooth climax intensity for visual transitions
-		climaxIntensity = climaxIntensity * 0.9 + (isClimax ? 1 : 0) * 0.1;
+		isClimax = (energyFactor > 1.0 || fluxFactor > 1.4 || (currentBass > 0.7 && currentTreble > 0.7)) && rawVal > 0.15;
+		
+		// Smooth climax intensity - faster response
+		climaxIntensity = climaxIntensity * 0.85 + (isClimax ? 1 : 0) * 0.15;
 		
 		// Spring Physics
 		const stiffness = 0.15;
@@ -209,7 +237,14 @@
 		yVel = (yVel + force) * damping;
 		smoothedVal += yVel;
 		
-		history.push(smoothedVal);
+		const hue = (performance.now() / 20) % 360;
+		history.push({ 
+			y: smoothedVal, 
+			b: bassIntensity, 
+			m: midIntensity, 
+			t: trebleIntensity,
+			h: hue
+		});
 		if (history.length > 500) history.shift();
 		
 		drawGraph();
@@ -224,6 +259,7 @@
 		const w = canvas.width;
 		const h = canvas.height;
 		const step = 2.0; 
+		const hue = (performance.now() / 20) % 360; // Global hue for the frame
 		
 		ctx.clearRect(0, 0, w, h);
 		ctx.lineJoin = 'round';
@@ -232,69 +268,84 @@
 		const currentCount = history.length;
 		const headX = w - 120; // Leave leading space in front of the dot
 		
-		// Brighter ethereal trail
-		const lineGradient = ctx.createLinearGradient(0, 0, w, 0);
-		lineGradient.addColorStop(0, "rgba(255, 255, 255, 0)");      
-		lineGradient.addColorStop(0.5, "rgba(255, 255, 255, 0.2)");  
-		lineGradient.addColorStop(1, "rgba(255, 255, 255, 0.5)"); // More visible history
-
-		ctx.beginPath();
-		ctx.strokeStyle = lineGradient;
-		ctx.lineWidth = 1.1;
+		// 1. Smart History Trail (Multi-segment rendering for varying colors)
+		ctx.lineWidth = 1.0;
 		
-		for (let i = 0; i < currentCount; i++) {
+		for (let i = 1; i < currentCount; i++) {
+			const pt = history[i];
+			const prevPt = history[i-1];
+			
 			const indexFromHead = (currentCount - 1 - i);
 			const x = headX - (indexFromHead * step);
-			const y = h - (history[i] * h * 0.5) - 40; 
+			const prevX = headX - ((indexFromHead + 1) * step);
 			
 			if (x < -20) continue;
-			if (i === 0) ctx.moveTo(x, y);
-			else ctx.lineTo(x, y);
+			
+			const y = h - (pt.y * h * 0.5) - 40;
+			const prevY = h - (prevPt.y * h * 0.5) - 40;
+			
+			// Color based on band intensity: Blue/Purple for Bass, White/Gold for Treble
+			const opacity = Math.max(0, 1 - (indexFromHead / 400));
+			let color = `hsla(${pt.h}, 30%, 80%, ${opacity * 0.5})`; // Default sleek
+			
+			if (pt.b > 0.6) color = `hsla(280, 70%, 70%, ${opacity * 0.8})`; // Bass Purple
+			if (pt.t > 0.6) color = `hsla(50, 90%, 80%, ${opacity * 0.8})`;  // Treble Gold
+			
+			ctx.beginPath();
+			ctx.strokeStyle = color;
+			ctx.lineWidth = 0.8 + (pt.b * 1.5); // Thicker for bass hits
+			ctx.moveTo(prevX, prevY);
+			ctx.lineTo(x, y);
+			ctx.stroke();
 		}
-		ctx.stroke();
 
 		// Floating Glow Point (Right-aligned)
-		const headY = h - (history[currentCount - 1] * h * 0.5) - 40;
+		const lastPt = history[currentCount - 1];
+		const headY = h - (lastPt.y * h * 0.5) - 40;
 
 		// Large Outer Glow
 		ctx.beginPath();
-		ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
-		ctx.lineWidth = 20;
-		ctx.filter = 'blur(15px)';
+		ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+		ctx.lineWidth = 12;
+		ctx.filter = 'blur(10px)';
 		ctx.arc(headX, headY, 2, 0, Math.PI * 2);
 		ctx.stroke();
 
-		// Core Glow
+		// Core Glow (Treble driven shimmer)
 		ctx.beginPath();
-		ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
-		ctx.lineWidth = 10;
-		ctx.filter = 'blur(6px)';
+		ctx.strokeStyle = `hsla(${hue}, 80%, 80%, ${0.1 + trebleIntensity * 0.2})`;
+		ctx.lineWidth = 5 + trebleIntensity * 5;
+		ctx.filter = `blur(${4 + trebleIntensity * 6}px)`;
 		ctx.arc(headX, headY, 1, 0, Math.PI * 2);
 		ctx.stroke();
 		ctx.filter = 'none';
 
-		// Solid Center Point (Flying Dot)
+		// Solid Center Point (Sleek Flying Dot)
 		ctx.beginPath();
 		
-		// Climax Color Logic: White -> Gold/Pink when things get intense
+		// Dynamic Color
 		const r = 255;
-		const g = 255 - (climaxIntensity * 55); 
-		const b = 255 - (climaxIntensity * 100);
-		ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${0.9 + climaxIntensity * 0.1})`;
+		const g = 255 - (climaxIntensity * 150) - (bassIntensity * 30); 
+		const b = 255 - (climaxIntensity * 50) + (bassIntensity * 50);
 		
-		// Dynamic Size: Dot gets bigger during climax
-		const baseSize = 3.5;
-		const dynamicSize = baseSize + (climaxIntensity * 5);
+		ctx.fillStyle = climaxIntensity > 0.2 
+			? `hsla(${hue}, 80%, 70%, ${0.9 + climaxIntensity * 0.1})`
+			: `rgba(${r}, ${g}, ${b}, ${0.9 + climaxIntensity * 0.1})`;
+		
+		// Sleek Dynamic Size: Smaller base (2.0) and controlled expansion
+		const baseSize = 2.0;
+		const dynamicSize = baseSize + (climaxIntensity * 8) + (bassIntensity * 4);
 		ctx.arc(headX, headY, dynamicSize, 0, Math.PI * 2);
 		ctx.fill();
 
-		// Extra 'Shockwave' Glow during peak hits
-		if (climaxIntensity > 0.3) {
+		// Extra 'Shockwave' Glow (Strong Bass driven) (Toned down)
+		if (climaxIntensity > 0.4 || bassIntensity > 0.8) {
+			const impact = Math.max(climaxIntensity, (bassIntensity - 0.5) * 2);
 			ctx.beginPath();
-			ctx.strokeStyle = `rgba(255, 100, 200, ${climaxIntensity * 0.3})`;
-			ctx.lineWidth = 2;
-			ctx.filter = 'blur(10px)';
-			ctx.arc(headX, headY, dynamicSize * 4, 0, Math.PI * 2);
+			ctx.strokeStyle = `hsla(${hue}, 90%, 60%, ${impact * 0.15})`;
+			ctx.lineWidth = 1 + impact * 2;
+			ctx.filter = `blur(${8 + impact * 10}px)`;
+			ctx.arc(headX, headY, dynamicSize * (2 + impact * 2), 0, Math.PI * 2);
 			ctx.stroke();
 			ctx.filter = 'none';
 		}
@@ -478,6 +529,18 @@
 						>
 							<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
 						</button>
+
+						<!-- Loop Toggle -->
+						<button 
+							class="ml-2 transition-all active:scale-90 focus:outline-none {isLooping ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : 'text-white/20'}" 
+							onclick={() => isLooping = !isLooping}
+							title="Loop"
+							onmousedown={(e) => e.preventDefault()}
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+								<path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>
+							</svg>
+						</button>
 					</div>
 
 					<!-- Volume -->
@@ -522,6 +585,7 @@
 		src={`/api/image?path=${encodeURIComponent(currentAudio?.path || '')}`}
 		crossorigin="anonymous"
 		autoplay
+		loop={isLooping}
 		onplay={handlePlay}
 		onpause={() => isPlaying = false}
 		ontimeupdate={(e) => currentTime = e.currentTarget.currentTime}
