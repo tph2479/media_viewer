@@ -91,7 +91,7 @@
 			loadPickerData(dir.path);
 			return;
 		}
-		
+
 		if (dir.isCbz) {
 			folderPath = dir.path;
 			isFolderPickerOpen = false;
@@ -144,10 +144,11 @@
 		<!-- Path Address Bar -->
 		<div class="px-6 py-3 flex gap-2 items-center bg-base-200 border-b border-base-content/5">
 			<button
-				class="btn btn-sm btn-square btn-ghost"
-				disabled={pickerParentPath === null}
-				onclick={() => { if (pickerParentPath !== null) loadPickerData(pickerParentPath); }}
-			>
+					class="btn btn-sm btn-square btn-ghost"
+					aria-label="Go to parent directory"
+					disabled={pickerParentPath === null}
+					onclick={() => { if (pickerParentPath !== null) loadPickerData(pickerParentPath); }}
+				>
 				<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
 			</button>
 
@@ -155,9 +156,9 @@
 				{pickerCurrentPath}
 			</div>
 
-			<button 
-				class="btn btn-sm btn-square btn-ghost {isPickerLoading || isDrivesLoading ? 'loading' : ''}" 
-				title="Refresh All" 
+			<button
+				class="btn btn-sm btn-square btn-ghost {isPickerLoading || isDrivesLoading ? 'loading' : ''}"
+				title="Refresh All"
 				onclick={() => {
 					loadPickerData(pickerCurrentPath, true);
 					onRefreshDrives?.();
@@ -190,12 +191,10 @@
 						{@const isThisPC = pickerCurrentPath === 'This PC'}
 						{@const style = entryStyle(dir, isThisPC)}
 						<li>
-							<!-- svelte-ignore a11y_click_events_have_key_events -->
-							<!-- svelte-ignore a11y_no_static_element_interactions -->
-							<a
-								class="flex gap-4 py-3 rounded-xl transition-all {style.color} {isPickerLoading ? 'pointer-events-none opacity-50' : 'hover:bg-primary/5 active:scale-[0.98]'}"
-								onclick={() => handleEntryClick(dir)}
-							>
+							<button
+												class="flex gap-4 py-3 rounded-xl transition-all w-full text-left {style.color} {isPickerLoading ? 'pointer-events-none opacity-50' : 'hover:bg-primary/5 active:scale-[0.98]'}"
+												onclick={() => handleEntryClick(dir)}
+											>
 								{#if style.icon === 'drive'}
 									<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><rect width="20" height="8" x="2" y="14" rx="2" /><path d="M6 18h.01" /><path d="M10 18h.01" /><path d="M22 14V9a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v5" /></svg>
 								{:else if style.icon === 'folder'}
@@ -207,7 +206,7 @@
 								{#if dir.isCbz}
 									<div class="badge badge-warning badge-xs font-black p-2 ml-auto">CBZ</div>
 								{/if}
-							</a>
+							</button>
 						</li>
 					{/each}
 				</ul>
@@ -220,7 +219,7 @@
 			<div class="flex gap-1.5 overflow-x-auto no-scrollbar max-w-[65%] items-center py-1.5 px-0.5">
 				{#each availableDrives as drive}
 					{@const isActive = pickerCurrentPath.startsWith(drive.path)}
-					<button 
+					<button
 						class="btn btn-xs h-9 w-10 px-0 rounded-xl border-none relative transition-all duration-200 {isActive ? 'btn-primary shadow-lg shadow-primary/30 z-10' : 'bg-base-100 hover:bg-base-300'}"
 						disabled={isPickerLoading}
 						onclick={() => loadPickerData(drive.path)}
@@ -248,7 +247,7 @@
 <style>
 	.custom-scrollbar::-webkit-scrollbar { width: 4px; }
 	.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
-	
+
 	.no-scrollbar {
 		-ms-overflow-style: none;
 		scrollbar-width: none;

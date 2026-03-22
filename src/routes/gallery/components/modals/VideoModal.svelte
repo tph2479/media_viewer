@@ -53,7 +53,7 @@
 
 	async function nextVideo() {
 		let nextIdx = selectedImageIndex + 1;
-		
+
 		if (isGrouped && nextIdx >= loadedImages.length && onSwitchToPagination) {
 			await onSwitchToPagination();
 		}
@@ -65,7 +65,7 @@
 			}
 			nextIdx++;
 		}
-		
+
 		if (hasMore && !isGrouped) {
 			loadFolder(false, currentPage + 1, true).then(() => {
 				nextVideo();
@@ -82,7 +82,7 @@
 			}
 			prevIdx--;
 		}
-		
+
 		if (currentPage > 0) {
 			loadFolder(false, currentPage - 1).then(() => {
 				if (loadedImages.length > 0) {
@@ -110,14 +110,14 @@
 		if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
 		if (!isModalOpen) return;
 
-		switch (event.code) { 
+		switch (event.code) {
 			case 'Escape': closeModal(); break;
-			case 'ArrowRight': 
-				event.preventDefault(); 
+			case 'ArrowRight':
+				event.preventDefault();
 				s.videoTime = Math.min(s.videoDuration, s.videoTime + 5);
 				break;
-			case 'ArrowLeft': 
-				event.preventDefault(); 
+			case 'ArrowLeft':
+				event.preventDefault();
 				s.videoTime = Math.max(0, s.videoTime - 5);
 				break;
 			case 'PageUp':
@@ -128,12 +128,12 @@
 				event.preventDefault();
 				nextVideo();
 				break;
-			case 'KeyF': 
+			case 'KeyF':
 				event.preventDefault();
 				ctrl.toggleFullscreen();
 				break;
-			case 'Space': 
-				event.preventDefault(); 
+			case 'Space':
+				event.preventDefault();
 				s.isVideoPaused = !s.isVideoPaused;
 				break;
 		}
@@ -235,14 +235,15 @@
 		onmousemove={ctrl.handleMouseMoveVisibility}
 	>
 		<!-- Main View Area -->
-		<div 
-			class="relative flex-1 w-full h-full flex items-center justify-center p-0 overflow-hidden" 
+		<div
+			class="relative flex-1 w-full h-full flex items-center justify-center p-0 overflow-hidden"
+			role="presentation"
 			onmousemove={ctrl.handleMouseMoveVisibility}
 		>
 			{#if currentItem}
 				<div class="relative w-full h-full flex items-center justify-center pointer-events-auto bg-black" bind:clientWidth={s.containerWidth} bind:clientHeight={s.containerHeight}>
 					<!-- svelte-ignore a11y_media_has_caption -->
-					<video 
+					<video
 						bind:this={s.videoElement}
 						bind:videoWidth={s.videoWidth}
 						bind:videoHeight={s.videoHeight}
@@ -266,9 +267,10 @@
 					></video>
 
 					<!-- VIDEO CONTROLS (Khung Tranh Style) -->
-					<div 
-						class="absolute inset-0 z-[120] pointer-events-none transition-all duration-300 {s.controlsVisible ? 'opacity-100' : 'opacity-0'}"
-						onmouseenter={() => (s.isHoveringControls = true)}
+					<div
+							class="absolute inset-0 z-[120] pointer-events-none transition-all duration-300 {s.controlsVisible ? 'opacity-100' : 'opacity-0'}"
+							role="presentation"
+							onmouseenter={() => (s.isHoveringControls = true)}
 						onmouseleave={() => {
 							s.isHoveringControls = false;
 							if (s.hideTimerId) clearTimeout(s.hideTimerId);
@@ -281,18 +283,19 @@
 						}}
 					>
 						<!-- TOP BACKGROUND SHADOW (Full Width) -->
-						<div 
+						<div
 							class="absolute top-0 left-0 w-full h-48 bg-gradient-to-b from-black/90 via-black/40 to-transparent pointer-events-none transition-opacity duration-300 {s.controlsVisible ? 'opacity-100' : 'opacity-0'} z-[110]"
 						></div>
 
 						<!-- TOP BACKGROUND SHADOW (Full Width) -->
-						<div 
+						<div
 							class="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-black/60 to-transparent pointer-events-none transition-opacity duration-300 {s.controlsVisible ? 'opacity-100' : 'opacity-0'} z-[110]"
 						></div>
 
 						<!-- INTEGRATED REFINED 2-ROW CONTROL SYSTEM -->
-						<div 
+						<div
 							class="absolute top-0 left-0 w-full p-4 z-[130] transition-all duration-300 {s.controlsVisible ? 'translate-y-0' : '-translate-y-4'} pointer-events-none flex flex-col gap-1"
+							role="presentation"
 							onmouseenter={() => (s.isHoveringControls = true)}
 							onmouseleave={() => (s.isHoveringControls = false)}
 						>
@@ -310,14 +313,14 @@
 
 									<div class="flex items-center gap-4 flex-1">
 										<!-- Seekbar -->
-										<div 
+										<div
 											role="slider"
 											aria-label="Seek Bar"
 											aria-valuemin="0"
 											aria-valuemax={s.videoDuration}
 											aria-valuenow={s.videoTime}
 											tabindex="0"
-											class="relative flex-1 h-3 flex items-center cursor-pointer group/progress" 
+											class="relative flex-1 h-3 flex items-center cursor-pointer group/progress"
 											onclick={(e) => { e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); if (s.videoDuration > 0) s.videoTime = ((e.clientX - rect.left) / rect.width) * s.videoDuration; }}
 											onmousedown={(e) => e.preventDefault()}
 											onkeydown={(e) => {
@@ -342,10 +345,10 @@
 
 								<!-- Right: Close Button -->
 								<div class="pointer-events-auto shrink-0 ml-2">
-									<button 
-										aria-label="Close" 
-										class="btn rounded-xl w-12 h-12 min-h-0 p-0 bg-zinc-900/95 hover:bg-zinc-800 text-white border border-white/10 shadow-2xl transition-all hover:scale-110" 
-										onclick={(e) => { e.stopPropagation(); closeModal(); }} 
+									<button
+										aria-label="Close"
+										class="btn rounded-xl w-12 h-12 min-h-0 p-0 bg-zinc-900/95 hover:bg-zinc-800 text-white border border-white/10 shadow-2xl transition-all hover:scale-110"
+										onclick={(e) => { e.stopPropagation(); closeModal(); }}
 										onmousedown={(e) => e.preventDefault()}
 									>
 										<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>

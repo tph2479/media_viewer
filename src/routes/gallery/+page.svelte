@@ -39,7 +39,7 @@
 	let isFolderPickerOpen = $state(false);
 	let isDrivesLoading = $state(false);
 	let isNoImagesPopupOpen = $state(false);
-	let noImagesPopupTimer: any = null;
+	let noImagesPopupTimer: any = $state(null);
 
 	let webtoonCbzPath = $state('');
 
@@ -69,6 +69,7 @@
 	let isGrouped = $state(false);
 	let groupedData = $state<any>(null);
 	let currentExclusiveType = $state<string | null>(null);
+	let lastLoadedPath = $state('');
 	let groupScrollPosition = $state(0);
 	let coverScrollPosition = $state(0);
 
@@ -216,6 +217,12 @@
 		folderPath = normalizePath(folderPath);
 		const targetPath = folderPath;
 		const targetId = lastOpenedFolder ? `item-${lastOpenedFolder.replace(/[^a-zA-Z0-9]/g, '-')}` : null;
+
+		// Reset exclusive type filter when navigating to a different folder
+		if (reset && targetPath !== lastLoadedPath) {
+			currentExclusiveType = null;
+		}
+		lastLoadedPath = targetPath;
 
 		if (reset) {
 			currentPage = pageToLoad;

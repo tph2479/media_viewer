@@ -78,7 +78,7 @@
 
 	async function next() {
 		let nextIdx = selectedImageIndex + 1;
-		
+
 		if (isGrouped && nextIdx >= loadedImages.length && onSwitchToPagination) {
 			await onSwitchToPagination();
 		}
@@ -157,7 +157,7 @@
 
 </script>
 
-<div 
+<div
 	class="fixed inset-0 z-[300] flex items-center justify-center bg-zinc-950 subtitle-hidden overflow-hidden font-sans"
 	role="dialog"
 	aria-modal="true"
@@ -166,8 +166,8 @@
 	<!-- High-end Ambient Background -->
 	<div class="absolute inset-0 z-0">
 		{#if !s.imgFailed}
-			<img 
-				src={`/api/media?path=${encodeURIComponent(currentAudio?.path || '')}&thumbnail=true&v=${cacheVersion.value}`} 
+			<img
+				src={`/api/media?path=${encodeURIComponent(currentAudio?.path || '')}&thumbnail=true&v=${cacheVersion.value}`}
 				alt=""
 				class="w-full h-full object-cover opacity-20 saturate-[1.2]"
 				transition:fade={{ duration: 1000 }}
@@ -183,17 +183,17 @@
 	<!-- Centered, Width-Limited Canvas Visualizer (Background) -->
 	<div class="absolute bottom-6 md:bottom-12 left-0 right-0 h-40 pointer-events-none z-0 flex justify-center">
 		<div class="w-full max-w-2xl h-full opacity-30 md:opacity-40">
-			<canvas 
-				bind:this={s.canvas} 
-				width="800" 
-				height="160" 
+			<canvas
+				bind:this={s.canvas}
+				width="800"
+				height="160"
 				class="w-full h-full"
 			></canvas>
 		</div>
 	</div>
 
 	<!-- Main Interaction Area -->
-	<div 
+	<div
 		class="relative z-10 w-full h-full max-w-5xl flex flex-col md:flex-row items-center justify-center gap-6 md:gap-12 p-6 md:p-16 -translate-y-6 md:-translate-y-20"
 		in:fly={{ y: 20, duration: 600, easing: quintOut }}
 	>
@@ -202,8 +202,8 @@
 			<!-- Card wrapper -->
 			<div class="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl border border-white/20 bg-neutral-800/80">
 				{#if !s.imgFailed}
-					<img 
-						src={`/api/media?path=${encodeURIComponent(currentAudio?.path || '')}&thumbnail=true&v=${cacheVersion.value}`} 
+					<img
+						src={`/api/media?path=${encodeURIComponent(currentAudio?.path || '')}&thumbnail=true&v=${cacheVersion.value}`}
 						alt={currentAudio?.name}
 						class="w-full h-full object-cover"
 						onerror={() => s.imgFailed = true}
@@ -220,7 +220,7 @@
 			</div>
 
 			<!-- Record Edge -->
-			<div 
+			<div
 				class="absolute -right-6 top-1/2 -translate-y-1/2 w-[85%] h-[85%] bg-neutral-800 rounded-full border border-white/10 shadow-2xl -z-10 transition-all duration-1000 {s.isPlaying ? 'translate-x-16 opacity-100' : 'translate-x-0 opacity-0'}"
 				style="background: radial-gradient(circle at center, #444444 0%, #262626 100%);"
 			>
@@ -240,7 +240,7 @@
 					<span class="bg-white/20 text-white text-[9px] font-black px-2 py-0.5 rounded tracking-[3px] uppercase">{extension}</span>
 					<div class="h-px flex-1 bg-white/10 hidden md:block"></div>
 				</div>
-				<h1 
+				<h1
 					class="text-2xl md:text-3xl font-bold text-white leading-tight tracking-tight drop-shadow-lg"
 					title={currentAudio?.name}
 				>
@@ -253,28 +253,28 @@
 
 			<!-- Control Pad -->
 			<div class="bg-zinc-900/60 border border-white/10 rounded-3xl p-5 md:p-8 space-y-4 md:space-y-8 shadow-2xl transition-all hover:bg-zinc-900/80">
-				
+
 				<!-- Seekbar -->
 				<div class="space-y-4">
 					<div class="relative h-2 flex items-center group cursor-pointer bg-white/10 rounded-full">
-						<input 
-							type="range" 
-							min="0" 
-							max={s.duration || 0} 
-							bind:value={s.currentTime} 
+						<input
+							type="range"
+							min="0"
+							max={s.duration || 0}
+							bind:value={s.currentTime}
 							oninput={(e) => { if (s.audioPlayer) s.audioPlayer.currentTime = Number(e.currentTarget.value); }}
-							class="absolute inset-0 w-full h-full appearance-none bg-transparent rounded-full cursor-pointer focus:outline-none z-30 opacity-0" 
+							class="absolute inset-0 w-full h-full appearance-none bg-transparent rounded-full cursor-pointer focus:outline-none z-30 opacity-0"
 						/>
-						<div 
-							class="absolute top-0 left-0 h-full bg-white transition-all shadow-[0_0_15px_white]" 
+						<div
+							class="absolute top-0 left-0 h-full bg-white transition-all shadow-[0_0_15px_white]"
 							style="width: {progress}%"
 						></div>
-						<div 
+						<div
 							class="absolute top-1/2 -translate-y-1/2 h-4 w-4 bg-white rounded-full shadow-lg z-20 pointer-events-none transition-all scale-0 group-hover:scale-100"
 							style="left: calc({progress}% - 8px)"
 						></div>
 					</div>
-					
+
 					<div class="flex justify-between items-center px-1 text-[11px] font-mono font-black text-white/50 tracking-widest">
 						<span class="text-white">{formatTime(s.currentTime)}</span>
 						<span>{formatTime(s.duration)}</span>
@@ -284,17 +284,18 @@
 				<!-- Controls Row -->
 				<div class="flex items-center justify-between gap-8">
 					<div class="flex items-center gap-6">
-						<button 
-							class="text-white/30 hover:text-white transition-all active:scale-90 focus:outline-none" 
-							onclick={prev} 
+						<button
+							class="text-white/30 hover:text-white transition-all active:scale-90 focus:outline-none"
+							aria-label="Previous"
+							onclick={prev}
 							disabled={selectedImageIndex === 0}
 							onmousedown={(e) => e.preventDefault()}
 						>
 							<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6L18 18V6z"/></svg>
 						</button>
-						
-						<button 
-							class="btn btn-circle btn-primary btn-lg shadow-xl hover:scale-105 active:scale-95 transition-all duration-300 ring-4 ring-white/10 focus:outline-none" 
+
+						<button
+							class="btn btn-circle btn-primary btn-lg shadow-xl hover:scale-105 active:scale-95 transition-all duration-300 ring-4 ring-white/10 focus:outline-none"
 							onclick={ctrl.togglePlay}
 							onmousedown={(e) => e.preventDefault()}
 						>
@@ -305,9 +306,10 @@
 							{/if}
 						</button>
 
-						<button 
-							class="text-white/30 hover:text-white transition-all active:scale-90 focus:outline-none" 
-							onclick={next} 
+						<button
+							class="text-white/30 hover:text-white transition-all active:scale-90 focus:outline-none"
+							aria-label="Next"
+							onclick={next}
 							disabled={selectedImageIndex === loadedImages.length - 1 && !hasMore}
 							onmousedown={(e) => e.preventDefault()}
 						>
@@ -315,8 +317,8 @@
 						</button>
 
 						{#if currentAudio?.isVideo && onSwitchToVideo}
-						<button 
-							class="ml-2 transition-all active:scale-90 focus:outline-none text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] hover:scale-110" 
+						<button
+							class="ml-2 transition-all active:scale-90 focus:outline-none text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] hover:scale-110"
 							onclick={onSwitchToVideo}
 							title="Switch To Video Mode"
 							onmousedown={(e) => e.preventDefault()}
@@ -328,8 +330,8 @@
 						{/if}
 
 						<!-- Loop Toggle -->
-						<button 
-							class="ml-2 transition-all active:scale-90 focus:outline-none {s.isLooping ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : 'text-white/20'}" 
+						<button
+							class="ml-2 transition-all active:scale-90 focus:outline-none {s.isLooping ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : 'text-white/20'}"
 							onclick={() => s.isLooping = !s.isLooping}
 							title="Loop"
 							onmousedown={(e) => e.preventDefault()}
@@ -340,8 +342,8 @@
 						</button>
 
 						<!-- Auto Next Toggle -->
-						<button 
-							class="ml-2 transition-all active:scale-90 focus:outline-none {s.isAutoNext ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : 'text-white/20'}" 
+						<button
+							class="ml-2 transition-all active:scale-90 focus:outline-none {s.isAutoNext ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : 'text-white/20'}"
 							onclick={() => s.isAutoNext = !s.isAutoNext}
 							title="Auto Next"
 							onmousedown={(e) => e.preventDefault()}
@@ -362,14 +364,14 @@
 							{/if}
 						</button>
 						<div class="flex-1 relative h-1 bg-white/10 rounded-full cursor-pointer">
-							<input 
-								type="range" 
-								min="0" 
-								max="1" 
-								step="0.01" 
-								bind:value={s.volume} 
+							<input
+								type="range"
+								min="0"
+								max="1"
+								step="0.01"
+								bind:value={s.volume}
 								oninput={(e) => { if (s.audioPlayer) { s.audioPlayer.volume = Number(e.currentTarget.value); s.isMuted = s.volume === 0; } }}
-								class="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer" 
+								class="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer"
 							/>
 							<div class="absolute top-0 left-0 h-full bg-white opacity-40 transition-all rounded-full" style="width: {s.volume * 100}%"></div>
 						</div>
@@ -380,7 +382,8 @@
 	</div>
 
 	<!-- System Close -->
-	<button 
+	<button
+		aria-label="Close"
 		class="absolute top-8 right-8 btn btn-circle btn-ghost text-white/40 hover:text-white hover:bg-white/10 transition-all focus:outline-none z-50"
 		onclick={close}
 		onmousedown={(e) => e.preventDefault()}
@@ -417,9 +420,6 @@
 	}
 
 	/* Performance hints */
-	.contain-strict {
-		contain: strict;
-	}
 	svg, img {
 		backface-visibility: hidden;
 	}

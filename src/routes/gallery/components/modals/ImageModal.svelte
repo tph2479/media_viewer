@@ -35,7 +35,7 @@
 		get totalImages() { return totalImages; },
 		get hasMore() { return hasMore; },
 		get currentPage() { return currentPage; },
-		loadFolder,
+		get loadFolder() { return loadFolder; },
 		get isGrouped() { return isGrouped; },
 		onSwitchToPagination: async () => { if (onSwitchToPagination) await onSwitchToPagination(); }
 	});
@@ -78,18 +78,20 @@
 		onmousemove={imgState.handleMouseMoveVisibility}
 	>
 		<!-- TOP BACKGROUND SHADOW (Full Width) -->
-		<div 
+		<div
 			class="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-black/60 to-transparent pointer-events-none transition-opacity duration-300 {imgState.topControlsVisible ? 'opacity-100' : 'opacity-0'} z-[110]"
 		></div>
 
 		<!-- Toolbar (Top) -->
 		<div class="absolute top-0 w-full p-4 flex justify-between items-start z-[110] bg-transparent pointer-events-none transition-all duration-300 {imgState.topControlsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}">
 			<!-- TOP LEFT: Info Area -->
-			<div 
-				class="text-white/90 pointer-events-auto flex flex-col max-w-[70%]" 
+			<div
+				class="text-white/90 pointer-events-auto flex flex-col max-w-[70%]"
 				onclick={(e) => e.stopPropagation()}
+				onkeydown={(e) => e.stopPropagation()}
 				onmouseenter={() => (imgState.isHoveringControls = true)}
 				onmouseleave={() => (imgState.isHoveringControls = false)}
+				role="presentation"
 			>
 				{#if imgState.currentItem}
 					<p class="select-text text-white font-black text-lg sm:text-2xl tracking-tight whitespace-normal break-words leading-tight">
@@ -100,7 +102,7 @@
 					{#if imgState.currentMetadata}
 						<p class="select-text text-white/50 text-[10px] sm:text-xs font-mono mt-1">
 							<span class="px-1 rounded-sm">
-								{formatBytes(imgState.currentMetadata.size)} 
+								{formatBytes(imgState.currentMetadata.size)}
 								{#if imgState.naturalWidth > 0 && imgState.naturalHeight > 0}
 									• {imgState.naturalWidth} x {imgState.naturalHeight}
 								{:else if imgState.currentMetadata.width && imgState.currentMetadata.height}
@@ -117,18 +119,19 @@
 					{/if}
 				{/if}
 			</div>
-			
+
 			<!-- TOP RIGHT: Button Area -->
-			<div 
+			<div
 				class="flex flex-col items-center gap-2 pointer-events-auto ml-2"
 				onmouseenter={() => (imgState.isHoveringControls = true)}
 				onmouseleave={() => (imgState.isHoveringControls = false)}
+				role="presentation"
 			>
 				<!-- Close Button -->
-				<button 
-					aria-label="Close" 
-					class="btn rounded-xl w-12 h-12 min-h-0 p-0 bg-zinc-900/95 hover:bg-zinc-800 text-white border border-white/10 backdrop-blur-xl shadow-2xl transition-all hover:scale-110 mb-2" 
-					onclick={(e) => { e.stopPropagation(); imgState.closeModal(); }} 
+				<button
+					aria-label="Close"
+					class="btn rounded-xl w-12 h-12 min-h-0 p-0 bg-zinc-900/95 hover:bg-zinc-800 text-white border border-white/10 backdrop-blur-xl shadow-2xl transition-all hover:scale-110 mb-2"
+					onclick={(e) => { e.stopPropagation(); imgState.closeModal(); }}
 					onmousedown={(e) => e.preventDefault()}
 				>
 					<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -146,24 +149,24 @@
 
 				<!-- Zoom Modes -->
 				<div class="flex flex-col bg-zinc-900/95 rounded-xl backdrop-blur-xl border border-white/10 overflow-hidden shadow-2xl w-12 mb-3 pointer-events-auto">
-					<button 
-						aria-label="Fit Width" 
+					<button
+						aria-label="Fit Width"
 						class="btn btn-ghost w-12 h-12 min-h-0 p-0 text-white rounded-none border-b border-white/10 flex items-center justify-center transition-colors hover:bg-white/5"
 						onclick={(e) => { e.stopPropagation(); imgState.toggleFitWidth(); }}
 						onmousedown={(e) => e.preventDefault()}
 					>
 						<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h8m-8 5h8m-8 5h8M4 5v14M20 5v14" /></svg>
 					</button>
-					<button 
-						aria-label="Toggle 1:1" 
+					<button
+						aria-label="Toggle 1:1"
 						class="btn btn-ghost border-none w-12 h-12 min-h-0 p-0 text-white rounded-none font-black font-mono flex items-center justify-center text-[10px] transition-colors hover:bg-white/5"
 						onclick={(e) => { e.stopPropagation(); imgState.toggleZoom(e.clientX, e.clientY); }}
 						onmousedown={(e) => e.preventDefault()}
 					>
 						1:1
 					</button>
-					<button 
-						aria-label="Rotate" 
+					<button
+						aria-label="Rotate"
 						class="btn btn-ghost w-12 h-12 min-h-0 p-0 text-white rounded-none transition-colors hover:bg-white/5 border-t border-white/10 flex items-center justify-center"
 						onclick={(e) => { e.stopPropagation(); imgState.rotateImage(); }}
 						onmousedown={(e) => e.preventDefault()}
@@ -174,22 +177,22 @@
 
 				<!-- Zoom Controls -->
 				<div class="flex flex-col bg-zinc-900/95 rounded-xl backdrop-blur-xl border border-white/10 overflow-hidden shadow-2xl w-12 pointer-events-auto">
-					<button aria-label="Zoom In" class="btn btn-ghost w-12 h-12 min-h-0 p-0 text-white rounded-none border-b border-white/10 transition-colors hover:bg-white/5" onclick={(e) => { 
-						e.stopPropagation(); 
+					<button aria-label="Zoom In" class="btn btn-ghost w-12 h-12 min-h-0 p-0 text-white rounded-none border-b border-white/10 transition-colors hover:bg-white/5" onclick={(e) => {
+						e.stopPropagation();
 						imgState.performZoom(Math.min(500, imgState.zoomLevel * 1.35));
 					}} onmousedown={(e) => e.preventDefault()}>
 						<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" /></svg>
 					</button>
-					<button 
-						aria-label="Current Zoom" 
+					<button
+						aria-label="Current Zoom"
 						class="w-full py-2 text-[10px] font-mono font-black text-white hover:bg-white/10 transition-colors bg-white/5 flex items-center justify-center tracking-tighter vertical-text"
 						onclick={(e) => { e.stopPropagation(); imgState.resetAll(); }}
 						onmousedown={(e) => e.preventDefault()}
 					>
 						{imgState.absoluteZoomPercent}%
 					</button>
-					<button aria-label="Zoom Out" class="btn btn-ghost w-12 h-12 min-h-0 p-0 text-white rounded-none border-t border-white/10 transition-colors hover:bg-white/5" onclick={(e) => { 
-						e.stopPropagation(); 
+					<button aria-label="Zoom Out" class="btn btn-ghost w-12 h-12 min-h-0 p-0 text-white rounded-none border-t border-white/10 transition-colors hover:bg-white/5" onclick={(e) => {
+						e.stopPropagation();
 						imgState.performZoom(Math.max(0.001, imgState.zoomLevel / 1.35));
 					}} onmousedown={(e) => e.preventDefault()}>
 						<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M20 12H4" /></svg>
@@ -197,24 +200,27 @@
 				</div>
 			</div>
 		</div>
-		
+
 		<!-- Main View Area -->
-		<div 
-			class="relative flex-1 w-full h-full flex items-center justify-center p-0 overflow-hidden" 
+		<div
+			class="relative flex-1 w-full h-full flex items-center justify-center p-0 overflow-hidden"
 			onmousemove={imgState.handleMouseMoveVisibility}
+			role="presentation"
 		>
 			{#if imgState.currentItem}
-				<div 
+				<div
 					class="relative flex items-center justify-center w-full h-full overflow-hidden"
 					onwheel={imgState.handleWheel}
 					onmousedown={imgState.startDrag}
 					onmousemove={imgState.onDrag}
 					onmouseup={imgState.stopDrag}
 					onmouseleave={imgState.stopDrag}
+					onclick={(e) => e.stopPropagation()}
+					ondblclick={(e) => { e.stopPropagation(); imgState.toggleZoom(e.clientX, e.clientY); }}
 					role="presentation"
 				>
 						{#key imgState.imageKey}
-						<img 
+						<img
 							src={imgState.currentImageSrc}
 							onload={async (e) => {
 								const img = e.currentTarget as HTMLImageElement;
@@ -223,13 +229,13 @@
 								imgState.naturalWidth = img.naturalWidth;
 								imgState.naturalHeight = img.naturalHeight;
 								imgState.isPortraitImage = imgState.naturalHeight > imgState.naturalWidth;
-								
+
 								// Ensure transitions are OFF and image HIDDEN while we find the fit
 								imgState.isFullImageLoaded = false;
-								
+
 								await tick();
 								imgState.renderedWidth = img.clientWidth;
-								
+
 								if (imgState.renderedWidth > 0) {
 									imgState.fitImageToViewport();
 								} else {
@@ -237,12 +243,12 @@
 									imgState.renderedWidth = img?.clientWidth || 0;
 									imgState.fitImageToViewport();
 								}
-								
-								// CRITICAL: We need TWO frames to ensure the browser paints the "scale(fit)" 
+
+								// CRITICAL: We need TWO frames to ensure the browser paints the "scale(fit)"
 								// with "transition: none" BEFORE we turn "transition: transform" back on.
 								await tick();
 								await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-								
+
 								imgState.isFullImageLoaded = true;
 							}}
 							class="pointer-events-auto select-none"
@@ -250,8 +256,6 @@
 							decoding="async"
 							fetchpriority="high"
 							draggable="false"
-							onclick={(e) => e.stopPropagation()}
-							ondblclick={(e) => { e.stopPropagation(); imgState.toggleZoom(e.clientX, e.clientY); }}
 							onerror={(e) => handleImageError(e, imgState.currentItem.path)}
 							alt={imgState.currentItem.name}
 						/>

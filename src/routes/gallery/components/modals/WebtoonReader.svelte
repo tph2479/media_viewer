@@ -14,6 +14,7 @@
 		onCloseCallback?: () => void;
 	} = $props();
 
+	// svelte-ignore state_referenced_locally
 	const ctrl = createWebtoonController(folderPath);
 	let s = $derived(ctrl.state);
 
@@ -82,7 +83,7 @@
 		if (typeof window === 'undefined' || !s.webtoonScrollContainer || isResizing) return;
 		const currentWidth = window.innerWidth;
 		if (currentWidth === lastWidth) return;
-		
+
 		isResizing = true;
 
 		const capturedIdx = s.currentImageIndex;
@@ -95,7 +96,7 @@
 		} else if (lastWidth < 640 && currentWidth >= 640) {
 			ctrl.setWebtoonZoom(s.previousWebtoonZoom < 0.99 ? s.previousWebtoonZoom : 0.6, undefined, { skipScroll: true });
 		}
-		
+
 		// 3. Clear any pending controller adjustments to ensure we have full control
 		s.pendingScrollTop = null;
 		lastWidth = currentWidth;
@@ -136,12 +137,14 @@
 <svelte:window onkeydown={handleKeyDown} onmousemove={ctrl.handleWindowMouseMove} onmouseup={ctrl.handleWindowMouseUp} onresize={handleResize} />
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-<div 
+<div
 	bind:this={s.webtoonScrollContainer}
 	tabindex="0"
-	class="webtoon-scroll fixed inset-0 z-[300] bg-zinc-950 overflow-y-auto animate-in fade-in duration-200 focus:outline-none" 
+	role="region"
+	aria-label="Webtoon Reader"
+	class="webtoon-scroll fixed inset-0 z-[300] bg-zinc-950 overflow-y-auto animate-in fade-in duration-200 focus:outline-none"
 	onmousemove={ctrl.handleMouseMove}
-	onscroll={(e) => { 
+	onscroll={(e) => {
 		const target = e.currentTarget as HTMLElement;
 		if (target.scrollHeight > 0 && !isResizing && s.pendingScrollTop === null) {
 			s.lastScrollPercent = target.scrollTop / target.scrollHeight;
@@ -178,10 +181,10 @@
 
 	<div class="fixed top-20 right-4 sm:right-6 bottom-2 flex flex-col items-end gap-2 z-[110] pointer-events-none transition-all duration-300 {s.controlsVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2'}">
 		<div class="flex flex-col items-end gap-2 pointer-events-auto h-full">
-			<button 
+			<button
 				aria-label="Toggle Fit Mode (Z Key)"
-				class="btn rounded-xl w-12 h-12 min-h-0 p-0 bg-zinc-900/90 hover:bg-zinc-800 text-white border border-white/10 backdrop-blur-xl shadow-2xl tooltip tooltip-left" 
-				data-tip="Toggle Fit Mode (Z Key)" 
+				class="btn rounded-xl w-12 h-12 min-h-0 p-0 bg-zinc-900/90 hover:bg-zinc-800 text-white border border-white/10 backdrop-blur-xl shadow-2xl tooltip tooltip-left"
+				data-tip="Toggle Fit Mode (Z Key)"
 				onclick={(e) => { e.stopPropagation(); ctrl.toggleWebtoonFit(); }}
 				onmousedown={(e) => e.preventDefault()}
 			>
@@ -203,21 +206,21 @@
 			<div class="flex-1 flex flex-col items-center gap-2 mt-1 bg-zinc-900/90 py-4 rounded-xl border border-white/10 shadow-2xl pointer-events-auto w-12 backdrop-blur-xl overflow-hidden px-0">
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
-				<div 
+				<div
 					bind:this={s.seekBarElement}
 					class="flex-1 w-3 sm:w-4 bg-white/10 rounded-full overflow-hidden border border-white/5 shadow-inner my-1 cursor-pointer group hover:bg-white/20 transition-colors relative"
 					onmousedown={ctrl.handleSeekBarMouseDown}
 				>
 					<!-- Current Progress -->
-					<div 
-						class="absolute top-0 left-0 w-full bg-primary rounded-full transition-all duration-75 ease-out origin-top z-10" 
+					<div
+						class="absolute top-0 left-0 w-full bg-primary rounded-full transition-all duration-75 ease-out origin-top z-10"
 						style="height: {s.smoothPercent}%"
 					></div>
-					
+
 					<!-- Drag Preview (Only shown when really dragging) -->
 					{#if s.isDraggingSeek && s.hasMoved}
-						<div 
-							class="absolute top-0 left-0 w-full bg-white/30 rounded-full origin-top z-20" 
+						<div
+							class="absolute top-0 left-0 w-full bg-white/30 rounded-full origin-top z-20"
 							style="height: {s.previewPercent}%"
 						></div>
 					{/if}
@@ -227,7 +230,7 @@
 						{Math.round(s.isDraggingSeek && s.hasMoved ? s.previewPercent : s.smoothPercent)}%
 					</span>
 					<!-- Jump to Page Trigger Icon -->
-					<button 
+					<button
 						aria-label="Edit Page Number"
 						class="btn btn-ghost btn-circle w-10 h-10 min-h-0 p-0 text-white hover:bg-white/10 transition-all mt-1 flex items-center justify-center"
 						onclick={(e) => { e.stopPropagation(); s.isJumpPopupOpen = !s.isJumpPopupOpen; }}
@@ -242,12 +245,15 @@
 
 			<!-- Editable Page indicator: Popup mode -->
 			{#if s.isJumpPopupOpen}
-				<div 
+				<div
 					class="bg-zinc-900/90 px-4 py-2 rounded-xl border border-white/10 backdrop-blur-xl shadow-2xl pointer-events-auto text-right min-h-[3rem] flex items-center justify-center font-mono font-black text-sm sm:text-base focus:outline-none animate-in fade-in slide-in-from-right-2 duration-200"
 				>
 					<span
-						contenteditable="true"
-						inputmode="numeric"
+						    role="textbox"
+						    aria-label="Page number"
+						    tabindex="0"
+						    contenteditable="true"
+						    inputmode="numeric"
 						class="text-white/90 focus:outline-none hover:bg-white/5 rounded px-1 transition-colors min-w-[1ch]"
 						onfocus={(e) => {
 							s.isEditingPage = true;
@@ -317,7 +323,7 @@
 				</div>
 			{/each}
 		</div>
-		
+
 		{#if s.errorMsg}
 			<div class="mt-8 mb-8 text-center text-error text-sm font-medium">
 				{s.errorMsg}
