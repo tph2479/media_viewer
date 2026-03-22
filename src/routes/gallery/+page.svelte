@@ -42,6 +42,15 @@
 	let noImagesPopupTimer: any = null;
 
 	let webtoonCbzPath = $state('');
+
+	// Cover folder browsing state
+	type CoverFolder = { name: string; path: string; coverPath: string };
+	let coverFolders = $state<CoverFolder[]>([]);
+	let coverFoldersTotal = $state(0);
+	let coverFoldersPage = $state(0);
+	let coverFoldersHasMore = $state(false);
+	let isCoverMode = $state(false);
+	const COVER_PAGE_SIZE = 30;
 	let selectedPdfPath = $state('');
 	let pendingFile = $state<{ path: string, type: 'media' | 'cbz' | 'pdf' } | null>(null);
 	let lastOpenedFolder = $state<string | null>(null);
@@ -344,6 +353,15 @@
 		isWebtoonMode = true;
 	}
 
+	function showPopup() {
+		isNoImagesPopupOpen = true;
+		if (noImagesPopupTimer) clearTimeout(noImagesPopupTimer);
+		noImagesPopupTimer = setTimeout(() => {
+			isNoImagesPopupOpen = false;
+			noImagesPopupTimer = null;
+		}, 3000);
+	}
+
 	async function handleOpenWebtoon() {
 		if (webtoonCbzPath) {
 			isWebtoonMode = true;
@@ -352,18 +370,28 @@
 
 		isLoading = true;
 		try {
-			const res = await fetch(`/api/file?action=gallery&folder=${encodeURIComponent(folderPath)}&page=0&limit=1&imagesOnly=true`);
-			const data = await res.json();
-			if (data.total > 0) {
+			// Step 1: Check if folder has images → open webtoon
+			const imgRes = await fetch(`/api/file?action=gallery&folder=${encodeURIComponent(folderPath)}&page=0&limit=1&imagesOnly=true`);
+			const imgData = await imgRes.json();
+			if (imgData.total > 0) {
 				isWebtoonMode = true;
-			} else {
-				isNoImagesPopupOpen = true;
-				if (noImagesPopupTimer) clearTimeout(noImagesPopupTimer);
-				noImagesPopupTimer = setTimeout(() => {
-					isNoImagesPopupOpen = false;
-					noImagesPopupTimer = null;
-				}, 3000);
+				return;
 			}
+
+			// Step 2: No images → check subfolders for covers
+			const coverRes = await fetch(`/api/file?action=covers&folder=${encodeURIComponent(folderPath)}&page=0&limit=${COVER_PAGE_SIZE}`);
+			const coverData = await coverRes.json();
+			if (coverData.total > 0) {
+				coverFolders = coverData.folders;
+				coverFoldersTotal = coverData.total;
+				coverFoldersPage = 0;
+				coverFoldersHasMore = coverData.hasMore;
+				isCoverMode = true;
+				return;
+			}
+
+			// Step 3: No images and no covers → show popup
+			showPopup();
 		} catch (e) {
 			console.error(e);
 		} finally {
@@ -486,6 +514,24 @@
 				onOpenDir={openDir}
 				onLoadPage={(page) => loadFolder(false, page)}
 				onOpenGroup={handleOpenGroup}
+				{coverFolders}
+				{coverFoldersTotal}
+				coverFoldersPage={coverFoldersPage}
+				{coverFoldersHasMore}
+				{isCoverMode}
+				onExitCoverMode={() => { isCoverMode = false; coverFolders = []; }}
+				onCoverFolderClick={(path) => { isCoverMode = false; coverFolders = []; openDir(path); }}
+				onLoadCoverPage={async (page) => {
+					isLoading = true;
+					try {
+						const res = await fetch(`/api/file?action=covers&folder=${encodeURIComponent(folderPath)}&page=${page}&limit=${COVER_PAGE_SIZE}`);
+						const data = await res.json();
+						coverFolders = data.folders;
+						coverFoldersPage = page;
+						coverFoldersHasMore = data.hasMore;
+					} catch (e) { console.error(e); }
+					finally { isLoading = false; }
+				}}
 			/>
 		{/if}
 	</div>

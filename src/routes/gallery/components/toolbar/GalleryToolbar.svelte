@@ -91,6 +91,7 @@
 			onkeydown={handleKeydown}
 			placeholder="Tap to browse..."
 			onclick={() => { if (typeof window !== 'undefined' && window.innerWidth < 640) onOpenPicker(); }}
+			readonly={typeof window !== 'undefined' && window.innerWidth < 640}
 			class="input input-sm input-bordered rounded-lg w-full font-semibold text-sm tracking-tight shadow-inner focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer sm:cursor-text"
 		/>
 	</div>

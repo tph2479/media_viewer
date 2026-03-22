@@ -4,6 +4,7 @@ import path from 'node:path';
 import { handleDelete } from './handlers/delete';
 import { handleNavigation } from './handlers/navigation';
 import { handleListing } from './handlers/listing';
+import { handleCovers } from './handlers/covers';
 
 export async function DELETE({ url }: RequestEvent) {
 	const pathParam = url.searchParams.get('path');
@@ -55,6 +56,26 @@ export async function GET({ url }: RequestEvent) {
             );
         } catch (e: any) {
             console.error('API Gallery Error:', e);
+            throw e;
+        }
+    }
+
+    // cover folder browsing
+    if (action === 'covers') {
+        const folderParam = url.searchParams.get('folder');
+        const pageParam = url.searchParams.get('page') || '0';
+        const limitParam = url.searchParams.get('limit') || '30';
+
+        if (!folderParam) {
+            return json({ folders: [], total: 0, page: 0, hasMore: false });
+        }
+
+        const folderPath = path.resolve(folderParam);
+
+        try {
+            return await handleCovers(folderPath, parseInt(pageParam, 10), parseInt(limitParam, 10));
+        } catch (e: any) {
+            console.error('API Covers Error:', e);
             throw e;
         }
     }
