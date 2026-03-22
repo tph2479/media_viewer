@@ -30,6 +30,8 @@
 		isAudioModalOpen = $bindable(),
 		totalAudioCount,
 
+		isCoverMode = $bindable(),
+		coverFolders = $bindable(),
 		isFolderPickerOpen = $bindable(),
 		folderPath = $bindable(),
 		availableDrives,
@@ -66,6 +68,8 @@
 		isAudioModalOpen: boolean;
 		totalAudioCount: number;
 
+		isCoverMode: boolean;
+		coverFolders: any[];
 		isFolderPickerOpen: boolean;
 		folderPath: string;
 		availableDrives: any[];
@@ -95,7 +99,7 @@
 		bind:isModalOpen={isImageModalOpen}
 		bind:selectedImageIndex
 		{loadedImages}
-		totalImages={totalImagesCount} 
+		totalImages={totalImagesCount}
 		{hasMore}
 		{currentPage}
 		{loadFolder}
@@ -117,7 +121,7 @@
 		bind:isModalOpen={isVideoModalOpen}
 		bind:selectedImageIndex
 		{loadedImages}
-		totalImages={totalVideosCount} 
+		totalImages={totalVideosCount}
 		{hasMore}
 		{currentPage}
 		{loadFolder}
@@ -132,7 +136,7 @@
 		bind:isModalOpen={isAudioModalOpen}
 		bind:selectedImageIndex
 		{loadedImages}
-		totalImages={totalAudioCount} 
+		totalImages={totalAudioCount}
 		{hasMore}
 		{currentPage}
 		{loadFolder}
@@ -151,7 +155,9 @@
 		onRefreshDrives={refreshDrives}
 		onSelect={() => {
 			const savedPage = folderPageHistory[folderPath] || 0;
-			mediaType = 'all'; 
+			mediaType = 'all';
+			isCoverMode = false;
+			coverFolders = [];
 			loadFolder(true, savedPage);
 		}}
 		onOpenFile={(path, type) => {
@@ -163,7 +169,7 @@
 <!-- No Images Popup (Toast style) -->
 {#if isNoImagesPopupOpen}
 	<div class="fixed bottom-6 right-6 z-[1000] animate-in slide-in-from-right-10 fade-in duration-300">
-		<div 
+		<div
 			class="bg-base-100 border border-base-content/10 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] rounded-2xl p-5 flex items-center gap-4 max-w-sm cursor-pointer hover:bg-base-100/90 transition-colors ring-1 ring-base-content/5"
 			onclick={() => { isNoImagesPopupOpen = false; if (noImagesPopupTimer) { clearTimeout(noImagesPopupTimer); noImagesPopupTimer = null; } }}
 		>

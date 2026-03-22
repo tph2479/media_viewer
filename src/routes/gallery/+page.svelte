@@ -344,6 +344,8 @@
 		localStorage.setItem('hello-last-path', normalized);
 		currentExclusiveType = null;
 		mediaType = 'all';
+		isCoverMode = false;
+		coverFolders = [];
 
 		// Restore page if it exists in history
 		const savedPage = folderPageHistory[normalized] || 0;
@@ -590,6 +592,8 @@
 	{totalVideosCount}
 	bind:isAudioModalOpen
 	{totalAudioCount}
+	bind:isCoverMode
+	bind:coverFolders
 	bind:isFolderPickerOpen
 	bind:folderPath
 	{availableDrives}

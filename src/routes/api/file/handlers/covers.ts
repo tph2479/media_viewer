@@ -21,7 +21,12 @@ export async function handleCovers(
   const dirs = entries.filter((e) => e.isDirectory());
 
   // Sort directories by name first
-  dirs.sort((a, b) => a.name.localeCompare(b.name));
+  dirs.sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, {
+      numeric: true,
+      sensitivity: "base",
+    }),
+  );
 
   const total = dirs.length;
   const start = page * limit;
