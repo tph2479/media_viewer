@@ -280,7 +280,7 @@ export function createImageModalState(props: {
 
 	function toggleZoom(anchorX?: number, anchorY?: number) {
 		let targetScale = (renderedWidth && naturalWidth) ? naturalWidth / renderedWidth : 2;
-		if (targetScale < 1.1) targetScale = 2;
+		if (targetScale < 1.1) targetScale = 1;
 		
 		// If zoom level is currently at or close to targetScale (or significantly zoomed in), reset to best fit
 		if (zoomLevel >= targetScale * 0.95) {
