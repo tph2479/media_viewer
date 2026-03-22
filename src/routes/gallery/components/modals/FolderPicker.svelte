@@ -26,6 +26,7 @@
 	let isPickerLoading = $state(false);
 	let pickerError = $state('');
 	let pickerSummary = $state<{ count: number; sizeBytes: number; types: string[] } | null>(null);
+	let dialogEl: HTMLDivElement;
 
 	async function loadPickerData(pathQuery = '', force = false) {
 		// Optimization: If going to "This PC" levels and we already have drives, use them without re-scanning
@@ -56,27 +57,29 @@
 	}
 
 	let wasOpen = false;
-	// Sync picker with main folderPath every time it opens
 	$effect(() => {
 		if (isFolderPickerOpen && !wasOpen) {
 			untrack(() => {
-				// Add a trailing slash if it's just a drive letter (e.g., "W:") to help path.resolve
 				let target = folderPath.trim();
 				if (target.length === 2 && target.endsWith(':')) {
 					target += '\\';
 				}
 				loadPickerData(target).catch(() => loadPickerData(''));
+				setTimeout(() => dialogEl?.focus(), 50);
 			});
 		}
 		wasOpen = isFolderPickerOpen;
 	});
+
+	function handleKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape') close();
+	}
 
 	function close() { isFolderPickerOpen = false; wasOpen = false; }
 
 	function confirm() {
 		if (pickerCurrentPath === 'This PC' || pickerCurrentPath === '') return;
 		let target = pickerCurrentPath;
-		// Normalize: Remove trailing slash if not a drive root (e.g., "W:\" -> "W:\", "C:\Users\" -> "C:\Users")
 		if (target.length > 3 && (target.endsWith('\\') || target.endsWith('/'))) {
 			target = target.slice(0, -1);
 		}
@@ -118,14 +121,15 @@
 	}
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events -->
 <div
 	role="dialog"
 	aria-modal="true"
 	aria-label="Select Directory"
 	tabindex="-1"
-	class="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm grid place-items-center p-4 animate-in fade-in duration-200"
+	class="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm grid place-items-center p-4 animate-in fade-in duration-200 outline-none"
 	onclick={close}
+	onkeydown={handleKeydown}
+	bind:this={dialogEl}
 >
 	<div
 		role="presentation"

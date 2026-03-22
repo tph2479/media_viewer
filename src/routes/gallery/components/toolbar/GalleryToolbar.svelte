@@ -61,6 +61,7 @@
 
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Enter') onLoad();
+		if (e.key === 'Escape') (e.target as HTMLElement)?.blur();
 	}
 </script>
 
