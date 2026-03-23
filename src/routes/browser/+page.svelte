@@ -20,7 +20,7 @@
 	let totalEbookCount = $state(0);
 	let totalMedia = $state(0);
 	let currentPage = $state(0);
-	const PAGE_SIZE = 30;
+	const PAGE_SIZE = 60;
 	let hasMore = $state(false);
 
 	let currentSort = $state('date_desc');

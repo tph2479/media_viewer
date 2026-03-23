@@ -1,16 +1,15 @@
 <script lang="ts">
     import "../app.css";
     import {
-        ArrowLeftRightIcon,
         BookIcon,
         HouseIcon,
         FolderTree,
         HardDriveDownload,
         SettingsIcon,
+        SunMoon,
     } from "lucide-svelte";
-    import { Navigation } from "@skeletonlabs/skeleton-svelte";
+    import { Navigation, Portal, Tooltip } from "@skeletonlabs/skeleton-svelte";
     import type { Snippet } from "svelte";
-    import { onMount } from "svelte";
 
     const { children }: { children: Snippet } = $props();
 
@@ -19,28 +18,56 @@
         { label: "Gallery", href: "/gallery", icon: BookIcon },
         { label: "File Browser", href: "/browser", icon: FolderTree },
         { label: "Import", href: "/import", icon: HardDriveDownload },
-        { label: "Settings", href: "/settings", icon: SettingsIcon },
     ];
 
-    let layoutRail = $state(true);
-    let isMobile = $state(false);
+    const bottom_links = [
+        { label: "Setting", href: "/settings", icon: SettingsIcon },
+    ];
 
-    function toggleLayout() {
-        layoutRail = !layoutRail;
-    }
+    let isMobile = $state(false);
 
     $effect(() => {
         const mediaQuery = window.matchMedia("(max-width: 768px)");
         isMobile = mediaQuery.matches;
-
         const handler = (e: MediaQueryListEvent) => {
             isMobile = e.matches;
         };
-
         mediaQuery.addEventListener("change", handler);
         return () => mediaQuery.removeEventListener("change", handler);
     });
 </script>
+
+{#snippet NavItem({
+    label,
+    href,
+    icon: Icon,
+}: {
+    label: string;
+    href: string;
+    icon: any;
+})}
+    <Tooltip openDelay={0} closeDelay={0} positioning={{ placement: "right" }}>
+        <Tooltip.Trigger class="w-full">
+            <Navigation.TriggerAnchor {href} class="flex justify-center py-3">
+                <Icon class="size-5" />
+            </Navigation.TriggerAnchor>
+        </Tooltip.Trigger>
+        <Portal>
+            <Tooltip.Positioner class="z-50">
+                <Tooltip.Content
+                    class="preset-filled-surface-950-50 text-xs px-3 py-1.5 rounded-md shadow-xl"
+                >
+                    {label}
+                    <Tooltip.Arrow
+                        class="[--arrow-size:--spacing(2)] [--arrow-background:var(--color-surface-950-50)]"
+                    >
+                        <Tooltip.ArrowTip />
+                    </Tooltip.Arrow>
+                </Tooltip.Content>
+            </Tooltip.Positioner>
+        </Portal>
+    </Tooltip>
+{/snippet}
 
 <div
     class="w-full h-screen grid"
@@ -49,51 +76,46 @@
 >
     {#if !isMobile}
         <Navigation
-            layout={layoutRail ? "rail" : "sidebar"}
-            class={layoutRail ? "w-14!" : "w-48"}
+            layout="rail"
+            class="w-16 border-r border-surface-500/20 p-1"
         >
+            <Navigation.Header>
+                <Navigation.Trigger class="flex justify-center py-3">
+                    <SunMoon class="size-5" />
+                </Navigation.Trigger>
+            </Navigation.Header>
+
             <Navigation.Content>
-                <Navigation.Header>
-                    <Navigation.Trigger onclick={toggleLayout}>
-                        <ArrowLeftRightIcon class="size-5" />
-                        {#if !layoutRail}<span>Resize</span>{/if}
-                    </Navigation.Trigger>
-                </Navigation.Header>
                 <Navigation.Menu>
-                    {#each links as link (link)}
-                        {@const Icon = link.icon}
-                        <Navigation.TriggerAnchor
-                            href={link.href}
-                            class={layoutRail ? "justify-center" : ""}
-                        >
-                            <Icon class="size-5" />
-                            {#if !layoutRail}
-                                <Navigation.TriggerText>
-                                    {link.label}
-                                </Navigation.TriggerText>
-                            {/if}
-                        </Navigation.TriggerAnchor>
+                    {#each links as link (link.label)}
+                        {@render NavItem(link)}
                     {/each}
                 </Navigation.Menu>
             </Navigation.Content>
+
+            <Navigation.Footer>
+                {#each bottom_links as link (link.label)}
+                    {@render NavItem(link)}
+                {/each}
+            </Navigation.Footer>
         </Navigation>
     {/if}
 
-    <!-- Render page content here -->
-    <main class="overflow-auto">
+    <main class="overflow-auto bg-surface-50-950">
         {@render children()}
     </main>
 
     {#if isMobile}
         <Navigation layout="bar">
-            <Navigation.Menu class="grid grid-cols-5 gap-1">
-                {#each links as link (link)}
+            <Navigation.Menu class="grid grid-cols-4 gap-1">
+                {#each links as link (link.label)}
                     {@const Icon = link.icon}
-                    <Navigation.TriggerAnchor href={link.href}>
+                    <Navigation.TriggerAnchor
+                        href={link.href}
+                        class="flex flex-col items-center py-2"
+                    >
                         <Icon class="size-5" />
-                        <Navigation.TriggerText>
-                            {link.label}
-                        </Navigation.TriggerText>
+                        <span class="text-[10px]">{link.label}</span>
                     </Navigation.TriggerAnchor>
                 {/each}
             </Navigation.Menu>
