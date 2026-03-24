@@ -60,11 +60,7 @@
     <!-- Clear cache & preferences -->
     <div class="card preset-outlined p-4 flex items-center justify-between">
         <div class="flex items-center gap-3">
-            <Trash2Icon
-                class="size-5 {clearConfirm
-                    ? 'text-error-400'
-                    : 'text-surface-400'}"
-            />
+            <Trash2Icon class="size-5" />
             <div>
                 <p class="font-medium">Clear cache & preferences</p>
                 <p class="text-sm text-surface-500-400">

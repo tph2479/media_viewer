@@ -1,5 +1,6 @@
 <script lang="ts">
     import "../app.css";
+    import { page } from "$app/stores";
     import {
         BookIcon,
         HouseIcon,
@@ -10,6 +11,7 @@
     } from "lucide-svelte";
     import { Navigation, Portal, Tooltip } from "@skeletonlabs/skeleton-svelte";
     import type { Snippet } from "svelte";
+    import { fade } from "svelte/transition";
 
     const { children }: { children: Snippet } = $props();
 
@@ -35,6 +37,12 @@
         mediaQuery.addEventListener("change", handler);
         return () => mediaQuery.removeEventListener("change", handler);
     });
+
+    const isActive = (href: string) => {
+        const currentPath = $page.url.pathname;
+        if (href === "/") return currentPath === "/";
+        return currentPath.startsWith(href);
+    };
 </script>
 
 {#snippet NavItem({
@@ -46,12 +54,28 @@
     href: string;
     icon: any;
 })}
+    {@const active = isActive(href)}
+
     <Tooltip openDelay={0} closeDelay={0} positioning={{ placement: "right" }}>
         <Tooltip.Trigger class="w-full">
-            <Navigation.TriggerAnchor {href} class="flex justify-center py-3">
-                <Icon class="size-5" />
+            <Navigation.TriggerAnchor
+                {href}
+                class="flex justify-center py-3 transition-all duration-200 relative
+                       "
+            >
+                {#if active}
+                    <div
+                        class="absolute left-0 top-1/4 bottom-1/4 w-1 bg-primary-500 rounded-r-full shadow-[0_0_10px_rgba(var(--color-primary-500)/0.5)]"
+                        transition:fade={{ duration: 200 }}
+                    ></div>
+                {/if}
+
+                <Icon
+                    class="size-5 {active ? 'stroke-[2.5px]' : 'stroke-[2px]'}"
+                />
             </Navigation.TriggerAnchor>
         </Tooltip.Trigger>
+
         <Portal>
             <Tooltip.Positioner class="z-50">
                 <Tooltip.Content
@@ -106,16 +130,36 @@
     </main>
 
     {#if isMobile}
-        <Navigation layout="bar">
+        <Navigation
+            layout="bar"
+            class="border-t border-surface-500/20 bg-surface-50-950 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]"
+        >
             <Navigation.Menu class="grid grid-cols-4 gap-1">
                 {#each links as link (link.label)}
                     {@const Icon = link.icon}
+                    {@const active = isActive(link.href)}
+
                     <Navigation.TriggerAnchor
                         href={link.href}
-                        class="flex flex-col items-center py-2"
+                        class="flex flex-col items-center py-2 transition-all duration-200
+                               {active
+                            ? 'text-primary-100'
+                            : 'text-surface-200-700 opacity-60'}"
                     >
-                        <Icon class="size-5" />
-                        <span class="text-[10px]">{link.label}</span>
+                        <div class="relative flex items-center justify-center">
+                            <Icon
+                                class="size-5 {active
+                                    ? 'stroke-[2.5px]'
+                                    : 'stroke-[2px]'}"
+                            />
+                        </div>
+                        <span
+                            class="text-[10px] mt-1 font-medium {active
+                                ? 'opacity-100'
+                                : 'opacity-80'}"
+                        >
+                            {link.label}
+                        </span>
                     </Navigation.TriggerAnchor>
                 {/each}
             </Navigation.Menu>

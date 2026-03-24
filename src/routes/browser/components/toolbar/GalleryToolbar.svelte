@@ -1,171 +1,291 @@
 <script lang="ts">
-	import type { ImageFile } from '../utils/utils';
+    import type { ImageFile } from "../utils/utils";
+    import {
+        FolderOpen,
+        ArrowUp,
+        RefreshCw,
+        Layers,
+        Image,
+        Video,
+        Music,
+        BookOpen,
+        LayoutGrid,
+        ChevronsRight,
+    } from "lucide-svelte";
 
-	let {
-		folderPath = $bindable(),
-		currentSort = $bindable(),
-		mediaType = $bindable(),
-		isLoading,
-		isFolderSelected,
-		isGrouped = false,
-		loadedImages,
-		totalItems,
-		totalImages = 0,
-		totalVideos = 0,
-		totalAudio = 0,
-		totalEbook = 0,
-		onLoad,
-		onOpenPicker,
-		onOpenWebtoon,
-		onGoUp
-	}: {
-		folderPath: string;
-		currentSort: string;
-		isLoading: boolean;
-		isFolderSelected: boolean;
-		isGrouped?: boolean;
-		loadedImages: ImageFile[];
-		totalItems: number;
-		totalImages?: number;
-		totalVideos?: number;
-		totalAudio?: number;
-		totalEbook?: number;
-		onLoad: () => void;
-		onOpenPicker: () => void;
-		onOpenWebtoon: () => void;
-		onGoUp: (dir: string) => void;
-		mediaType: 'all' | 'images' | 'videos' | 'audio' | 'ebook';
-	} = $props();
+    let {
+        folderPath = $bindable(),
+        currentSort = $bindable(),
+        mediaType = $bindable(),
+        isLoading,
+        isFolderSelected,
+        isGrouped = false,
+        loadedImages,
+        totalItems,
+        totalImages = 0,
+        totalVideos = 0,
+        totalAudio = 0,
+        totalEbook = 0,
+        onLoad,
+        onOpenPicker,
+        onOpenWebtoon,
+        onGoUp,
+    }: {
+        folderPath: string;
+        currentSort: string;
+        isLoading: boolean;
+        isFolderSelected: boolean;
+        isGrouped?: boolean;
+        loadedImages: ImageFile[];
+        totalImages?: number;
+        totalVideos?: number;
+        totalAudio?: number;
+        totalEbook?: number;
+        totalItems: number;
+        onLoad: () => void;
+        onOpenPicker: () => void;
+        onOpenWebtoon: () => void;
+        onGoUp: (dir: string) => void;
+        mediaType: "all" | "images" | "videos" | "audio" | "ebook";
+    } = $props();
 
-	const parentPath = $derived.by(() => {
-		if (!folderPath) return null;
+    // ── Logic giữ nguyên ─────────────────────────────────────────────
+    const parentPath = $derived.by(() => {
+        if (!folderPath) return null;
+        const normalized = folderPath.replace(/\\/g, "/").replace(/\/+$/, "");
+        if (/^[a-zA-Z]:$/.test(normalized)) return null;
+        const parts = normalized.split("/");
+        if (parts.length <= 1) return null;
+        const parent = parts.slice(0, -1).join("\\");
+        if (/^[a-zA-Z]:$/.test(parent)) return parent + "\\";
+        return parent;
+    });
 
-		// Normalize separators and trim trailing slashes
-		const normalized = folderPath.replace(/\\/g, '/').replace(/\/+$/, '');
+    function handleKeydown(e: KeyboardEvent) {
+        if (e.key === "Enter") onLoad();
+        if (e.key === "Escape") (e.target as HTMLElement)?.blur();
+    }
 
-		// If it's already a drive root (e.g., "C:"), don't go up
-		if (/^[a-zA-Z]:$/.test(normalized)) return null;
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
 
-		const parts = normalized.split('/');
-		if (parts.length <= 1) return null;
+    // ── Popup state ───────────────────────────────────────────────────
+    let menuOpen = $state(false);
+    let menuRef = $state<HTMLElement | null>(null);
 
-		const parent = parts.slice(0, -1).join('\\');
+    function toggleMenu() {
+        menuOpen = !menuOpen;
+    }
 
-		// If the resulting parent is just a drive letter "C:", return "C:\" for consistency
-		if (/^[a-zA-Z]:$/.test(parent)) {
-			return parent + '\\';
-		}
+    function handleOutsideClick(e: MouseEvent) {
+        if (menuRef && !menuRef.contains(e.target as Node)) menuOpen = false;
+    }
 
-		return parent;
-	});
+    $effect(() => {
+        if (menuOpen)
+            document.addEventListener("mousedown", handleOutsideClick);
+        else document.removeEventListener("mousedown", handleOutsideClick);
+        return () =>
+            document.removeEventListener("mousedown", handleOutsideClick);
+    });
 
-	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Enter') onLoad();
-		if (e.key === 'Escape') (e.target as HTMLElement)?.blur();
-	}
+    // ── Media options ─────────────────────────────────────────────────
+    const mediaOptions: {
+        value: typeof mediaType;
+        label: string;
+        icon: typeof Image;
+        count: number;
+    }[] = $derived([
+        { value: "all", label: "All", icon: LayoutGrid, count: totalItems },
+        { value: "images", label: "Images", icon: Image, count: totalImages },
+        { value: "videos", label: "Videos", icon: Video, count: totalVideos },
+        { value: "audio", label: "Audio", icon: Music, count: totalAudio },
+        { value: "ebook", label: "Ebook", icon: BookOpen, count: totalEbook },
+    ]);
+
+    const sortOptions = [
+        { value: "date_desc", label: "Newest" },
+        { value: "date_asc", label: "Oldest" },
+        { value: "name_asc", label: "A – Z" },
+        { value: "name_desc", label: "Z – A" },
+    ] as const;
+
+    function selectMedia(v: typeof mediaType) {
+        mediaType = v;
+        onLoad();
+    }
+
+    function selectSort(v: string) {
+        currentSort = v;
+        onLoad();
+    }
 </script>
 
-<div class="flex flex-row items-center gap-2 sm:gap-3 w-full overflow-x-auto no-scrollbar py-1.5 min-h-[48px] flex-wrap sm:flex-nowrap">
-	<!-- Select Folder (hidden on mobile) -->
-	<button onclick={onOpenPicker} class="hidden sm:block btn btn-sm btn-ghost rounded-lg font-bold shrink-0 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20 border border-primary" onmousedown={(e) => e.preventDefault()}>
-		Select
-	</button>
+<div
+    class="relative flex items-center w-full max-w-4xl mx-auto h-15 px-2"
+    bind:this={menuRef}
+>
+    <div
+        class="flex items-center flex-1 px-3
+                       bg-surface-100-900 dark:bg-surface-800
+                       border border-surface-200-800 shadow-lg rounded-full
+                       overflow-hidden"
+    >
+        <button
+            class="hidden sm:flex items-center justify-center w-10 h-10 shrink-0
+                   rounded-full text-sm font-medium
+                   hover:preset-tonal-surface transition-colors"
+            onclick={onOpenPicker}
+            onmousedown={(e) => e.preventDefault()}
+            title="Select folder"
+        >
+            <FolderOpen size={20} />
+        </button>
 
-	<!-- Up Button -->
-	<button
-		onclick={() => parentPath && onGoUp(parentPath)}
-		disabled={!parentPath || isLoading}
-		class="btn btn-sm btn-ghost btn-square rounded-lg border border-primary shadow-sm shrink-0 focus:outline-none focus:ring-2 focus:ring-primary/20"
-		title="Up one level"
-		onmousedown={(e) => e.preventDefault()}
-	>
-		<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-			<path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
-		</svg>
-	</button>
+        <button
+            class="flex items-center justify-center w-10 h-10 shrink-0
+                   rounded-full hover:preset-tonal-surface transition-colors
+                   disabled:opacity-30"
+            onclick={() => parentPath && onGoUp(parentPath)}
+            disabled={!parentPath || isLoading}
+            onmousedown={(e) => e.preventDefault()}
+            title="Up one level"
+        >
+            <ArrowUp size={20} strokeWidth={2.5} />
+        </button>
 
-	<!-- Address Input (opens picker on mobile) -->
-	<div class="flex-1 w-full sm:min-w-[300px]">
-		<input
-			type="text"
-			bind:value={folderPath}
-			onkeydown={handleKeydown}
-			placeholder="Tap to browse..."
-			onclick={() => { if (typeof window !== 'undefined' && window.innerWidth < 640) onOpenPicker(); }}
-			readonly={typeof window !== 'undefined' && window.innerWidth < 640}
-			class="input input-sm input-bordered rounded-lg w-full font-semibold text-sm tracking-tight shadow-inner focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer sm:cursor-text"
-		/>
-	</div>
+        <div class="h-6 w-px bg-surface-200-800 mx-1"></div>
 
-	<!-- Load Button -->
-	<button onclick={onLoad} class="btn btn-sm btn-ghost rounded-lg shadow-md px-3 font-bold shrink-0 focus:outline-none focus:ring-2 focus:ring-primary/20 border border-primary" disabled={isLoading} onmousedown={(e) => e.preventDefault()}>
-		{#if isLoading}
-			<span class="loading loading-spinner loading-sm"></span>
-		{:else}
-			<span class="hidden xs:inline">Refresh</span>
-			<span class="xs:hidden">↻</span>
-		{/if}
-	</button>
+        <input
+            type="text"
+            class="flex-1 min-w-0 h-full px-4 bg-transparent
+                   border-none outline-none ring-0
+                   text-sm font-medium tracking-tight
+                   placeholder:opacity-40 placeholder:font-normal
+                   text-surface-700-200"
+            bind:value={folderPath}
+            onkeydown={handleKeydown}
+            placeholder="Tap to browse…"
+            onclick={() => isMobile && onOpenPicker()}
+            readonly={isMobile}
+        />
 
-	{#if isFolderSelected}
-		<button
-			class="btn btn-sm btn-ghost rounded-lg shadow-sm font-bold gap-1 sm:gap-2 shrink-0 border border-primary"
-			onclick={onOpenWebtoon}
-			disabled={loadedImages.length === 0 && !isGrouped}
-			onmousedown={(e) => e.preventDefault()}
-			title="Webtoon / Cover View"
-		>
-			<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-			</svg>
-		</button>
+        <button
+            class="flex items-center justify-center w-10 h-10 shrink-0
+                   rounded-full hover:preset-tonal-surface transition-colors
+                   disabled:opacity-30"
+            onclick={onLoad}
+            disabled={isLoading}
+            onmousedown={(e) => e.preventDefault()}
+            title="Refresh"
+        >
+            {#if isLoading}
+                <span class="spinner-third w-4 h-4 border-2"></span>
+            {:else}
+                <RefreshCw size={20} />
+            {/if}
+        </button>
 
-		<!-- Media Type Select -->
-		<select
-			class="select select-bordered select-sm rounded-lg font-bold w-fit shrink-0 border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-			bind:value={mediaType}
-			onchange={onLoad}
-		>
-			<option value="all">All-{totalItems}</option>
-			<option value="images">Images-{totalImages}</option>
-			<option value="videos">Videos-{totalVideos}</option>
-			<option value="audio">Audio-{totalAudio}</option>
-			<option value="ebook">Ebook-{totalEbook}</option>
-		</select>
+        <button
+            type="button"
+            class="hidden sm:flex items-center justify-center w-10 h-10 shrink-0
+                   rounded-full hover:preset-tonal-surface transition-colors
+                   disabled:opacity-30 ml-1"
+            onclick={onOpenWebtoon}
+            disabled={loadedImages.length === 0 && !isGrouped}
+            title="Webtoon / Cover view"
+        >
+            <Layers size={20} />
+        </button>
 
-		<!-- Sort Select -->
-		<!-- Mobile: icon only -->
-		<select
-			class="sm:hidden select select-bordered select-sm rounded-lg font-bold w-fit min-w-[40px] shrink-0 border-primary text-center appearance-none focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all [&::-ms-expand]:hidden"
-			bind:value={currentSort}
-			onchange={onLoad}
-		>
-			<option value="date_desc">↓</option>
-			<option value="date_asc">↑</option>
-			<option value="name_asc">A</option>
-			<option value="name_desc">Z</option>
-		</select>
-		<!-- Desktop: full text -->
-		<select
-			class="hidden sm:block select select-bordered select-sm rounded-lg font-bold w-fit shrink-0 pr-8 border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-			bind:value={currentSort}
-			onchange={onLoad}
-		>
-			<option value="date_desc">Newest</option>
-			<option value="date_asc">Oldest</option>
-			<option value="name_asc">A-Z</option>
-			<option value="name_desc">Z-A</option>
-		</select>
-	{/if}
+        {#if isFolderSelected}
+            <button
+                class="flex items-center justify-center w-10 h-10 shrink-0
+                       rounded-full transition-all ml-1
+                       {menuOpen
+                    ? 'preset-filled-primary-500 scale-110'
+                    : 'hover:preset-tonal-surface'}"
+                onclick={toggleMenu}
+                onmousedown={(e) => e.preventDefault()}
+                title="View options"
+                aria-expanded={menuOpen}
+            >
+                <ChevronsRight size={20} />
+            </button>
+        {/if}
+    </div>
+
+    <!-- Popup -->
+    {#if isFolderSelected && menuOpen}
+        <div
+            class="popup absolute right-0 top-[calc(100%+6px)]
+                    w-64 p-3 space-y-3
+                    rounded-container
+                    bg-surface-100-900 dark:bg-surface-800
+                    border border-surface-200-800 shadow-xl"
+        >
+            <!-- Media type -->
+            <p class="text-[10px] font-semibold tracking-widest uppercase">
+                Media type
+            </p>
+            <div class="grid grid-cols-3 gap-1.5">
+                {#each mediaOptions as opt}
+                    <button
+                        class="flex flex-col items-center gap-1 py-2 px-1
+                               rounded-container text-xs transition-colors
+                               border border-surface-200-800
+                               {mediaType === opt.value
+                            ? 'preset-filled-primary-500'
+                            : 'hover:preset-tonal-surface'}"
+                        onclick={() => selectMedia(opt.value)}
+                        disabled={opt.value !== "all" &&
+                            !isGrouped &&
+                            loadedImages.length === 0}
+                        title="{opt.label} ({opt.count})"
+                    >
+                        <opt.icon size={16} />
+                        <span class="leading-none">{opt.label}</span>
+                        <span class="text-[10px]">{opt.count}</span>
+                    </button>
+                {/each}
+
+                <!-- Webtoon -->
+                <!-- <button
+                    class="flex flex-col items-center gap-1 py-2 px-1
+                           rounded-container text-xs transition-colors
+                           border border-surface-200-800
+                           hover:preset-tonal-surface disabled:opacity-40"
+                    onclick={() => {
+                        onOpenWebtoon();
+                        menuOpen = false;
+                    }}
+                    disabled={loadedImages.length === 0 && !isGrouped}
+                    title="Webtoon / Cover view"
+                >
+                    <Layers size={20} />
+                    <span class="leading-none">Webtoon</span>
+                </button> -->
+            </div>
+
+            <hr class="border-surface-200-800" />
+
+            <!-- Sort -->
+            <p class="text-[10px] font-semibold tracking-widest uppercase">
+                Sort by
+            </p>
+            <div class="grid grid-cols-4 gap-1">
+                {#each sortOptions as opt}
+                    <button
+                        class="py-1.5 text-xs rounded-container transition-colors
+                               border border-surface-200-800
+                               {currentSort === opt.value
+                            ? 'preset-filled-primary-500'
+                            : 'hover:preset-tonal-surface'}"
+                        onclick={() => selectSort(opt.value)}
+                    >
+                        {opt.label}
+                    </button>
+                {/each}
+            </div>
+        </div>
+    {/if}
 </div>
-
-<style>
-	.no-scrollbar::-webkit-scrollbar {
-		display: none;
-	}
-	.no-scrollbar {
-		-ms-overflow-style: none;
-		scrollbar-width: none;
-	}
-
-</style>
