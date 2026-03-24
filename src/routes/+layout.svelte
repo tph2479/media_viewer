@@ -125,14 +125,14 @@
         </Navigation>
     {/if}
 
-    <main class="overflow-auto bg-surface-50-950">
+    <main class="overflow-auto">
         {@render children()}
     </main>
 
     {#if isMobile}
         <Navigation
             layout="bar"
-            class="border-t border-surface-500/20 bg-surface-50-950 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]"
+            class="border-t border-surface-500/20 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]"
         >
             <Navigation.Menu class="grid grid-cols-4 gap-1">
                 {#each links as link (link.label)}

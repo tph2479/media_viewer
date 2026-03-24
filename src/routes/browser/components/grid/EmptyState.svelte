@@ -6,7 +6,7 @@
 
 <div
     class="flex-1 flex flex-col items-center justify-center
-           bg-surface-50-950 border border-surface-200-800
+           bg-surface-50-800 border border-surface-200-800
            rounded-2xl p-8 shadow-inner
            text-center animate-in fade-in zoom-in-95 duration-700 h-full"
 >
