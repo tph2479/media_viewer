@@ -99,8 +99,8 @@ export async function GET({ url, request }: RequestEvent) {
         "Cache-Control": "public, max-age=31536000, immutable",
       };
       // @ts-ignore
-      if (globalThis.Bun)
-        return new Response(globalThis.Bun.file(thumbPath), { headers });
+      if ((globalThis as any).Bun)
+        return new Response((globalThis as any).Bun.file(thumbPath), { headers });
       return new Response(await fsp.readFile(thumbPath), { headers });
     }
 

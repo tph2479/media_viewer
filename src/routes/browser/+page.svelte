@@ -1,11 +1,11 @@
 <script lang="ts">
     import { onMount, onDestroy, tick } from "svelte";
-    import GalleryToolbar from "./components/toolbar/GalleryToolbar.svelte";
-    import GalleryGrid from "./components/grid/GalleryGrid.svelte";
-    import EmptyState from "./components/grid/EmptyState.svelte";
-    import GroupViewHeader from "./components/grid/GroupViewHeader.svelte";
-    import GalleryModals from "./components/modals/GalleryModals.svelte";
-    import type { ImageFile } from "./components/utils/utils";
+    import GalleryToolbar from "$lib/components/GalleryToolbar.svelte";
+    import GalleryGrid from "$lib/components/GalleryGrid.svelte";
+    import EmptyState from "$lib/components/EmptyState.svelte";
+    import GroupViewHeader from "$lib/components/GroupViewHeader.svelte";
+    import GalleryModals from "$lib/components/GalleryModals.svelte";
+    import type { ImageFile } from "$lib/utils/utils";
     import { BadgeAlert, Pin } from "lucide-svelte";
 
     // ── Core state ────────────────────────────────────────────────────────────
