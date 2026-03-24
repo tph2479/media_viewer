@@ -128,7 +128,7 @@
         class="flex items-center flex-1 px-3
                        bg-surface-100-900 dark:bg-surface-800
                        border border-surface-200-800 shadow-lg rounded-full
-                       overflow-hidden"
+                       overflow-visible"
     >
         <button
             class="hidden sm:flex items-center justify-center w-10 h-10 shrink-0
@@ -200,9 +200,9 @@
         {#if isFolderSelected}
             <button
                 class="flex items-center justify-center w-10 h-10 shrink-0
-                       rounded-full transition-all ml-1
+                       rounded-full transition-colors ml-1
                        {menuOpen
-                    ? 'preset-filled-primary-500 scale-110'
+                    ? 'preset-filled-primary-500'
                     : 'hover:preset-tonal-surface'}"
                 onclick={toggleMenu}
                 onmousedown={(e) => e.preventDefault()}
@@ -217,11 +217,12 @@
     <!-- Popup -->
     {#if isFolderSelected && menuOpen}
         <div
-            class="popup absolute right-0 top-[calc(100%+6px)]
+            class="popup absolute right-0 top-[calc(100%+6px)] z-[500]
                     w-64 p-3 space-y-3
                     rounded-container
                     bg-surface-100-900 dark:bg-surface-800
-                    border border-surface-200-800 shadow-xl"
+                    border border-surface-200-800 shadow-xl
+                    pointer-events-auto"
         >
             <!-- Media type -->
             <p class="text-[10px] font-semibold tracking-widest uppercase">
