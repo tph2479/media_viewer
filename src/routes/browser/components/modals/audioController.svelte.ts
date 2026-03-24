@@ -38,8 +38,22 @@ export function createAudioController() {
 		if (!s.audioPlayer) return;
 		if (s.audioPlayer.paused) {
 			s.audioPlayer.play();
+			startVisualizer();
 		} else {
 			s.audioPlayer.pause();
+			stopVisualizer();
+		}
+	}
+
+	function startVisualizer() {
+		if (s.animationFrame) return;
+		s.animationFrame = requestAnimationFrame(updateExcitement);
+	}
+
+	function stopVisualizer() {
+		if (s.animationFrame) {
+			cancelAnimationFrame(s.animationFrame);
+			s.animationFrame = 0;
 		}
 	}
 
@@ -235,6 +249,7 @@ export function createAudioController() {
 
 	function handlePlay() {
 		s.isPlaying = true;
+		startVisualizer();
 		if (!s.audioCtx) {
 			initAudioContext();
 		} else if (s.audioCtx.state === 'suspended') {
@@ -243,7 +258,7 @@ export function createAudioController() {
 	}
 
 	function destroy() {
-		if (s.animationFrame) cancelAnimationFrame(s.animationFrame);
+		stopVisualizer();
 		if (s.audioCtx) s.audioCtx.close();
 		s.audioCtx = null;
 		s.analyser = null;

@@ -3,7 +3,7 @@
 	import { onDestroy } from 'svelte';
 	import { cacheVersion } from '$lib/stores/cache.svelte';
 	import { createVideoController } from './videoController.svelte';
-	import { X, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX, RotateCw, Maximize, Minimize } from 'lucide-svelte';
+	import { X, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX, RotateCw, Maximize, Minimize, Music, Repeat } from 'lucide-svelte';
 
 	let {
 		isModalOpen = $bindable(),
@@ -394,7 +394,7 @@
 													{/if}
 												</button>
 												<button aria-label="Toggle Loop" class="btn btn-ghost w-8 h-8 min-h-0 p-0 transition-all hover:bg-white/10 {s.isVideoLoop ? 'text-primary' : 'text-white'}" onclick={(e) => { e.stopPropagation(); s.isVideoLoop = !s.isVideoLoop; }} onmousedown={(e) => e.preventDefault()}>
-													<RotateCw class="h-5 w-5" />
+													<Repeat class="h-5 w-5" />
 												</button>
 												<button aria-label="Toggle Mute" class="btn btn-ghost w-8 h-8 min-h-0 p-0 transition-all hover:bg-white/10 {s.isVideoMuted ? 'text-red-500' : 'text-white'}" onclick={(e) => { e.stopPropagation(); s.isVideoMuted = !s.isVideoMuted; }} onmousedown={(e) => e.preventDefault()}>
 													{#if s.isVideoMuted}
@@ -409,7 +409,7 @@
 											<div class="flex items-center gap-1">
 												{#if onSwitchToAudio}
 													<button aria-label="Audio Only" class="btn btn-ghost w-8 h-8 min-h-0 p-0 text-white transition-colors hover:bg-white/10" onclick={(e) => { e.stopPropagation(); onSwitchToAudio(); }} title="Audio Only Mode" onmousedown={(e) => e.preventDefault()}>
-														<RotateCw class="h-5 w-5" />
+														<Music class="h-5 w-5" />
 													</button>
 												{/if}
 												<button aria-label="Rotate" class="btn btn-ghost w-8 h-8 min-h-0 p-0 text-white transition-colors hover:bg-white/10" onclick={(e) => { e.stopPropagation(); ctrl.rotateVideo(); }} onmousedown={(e) => e.preventDefault()}>

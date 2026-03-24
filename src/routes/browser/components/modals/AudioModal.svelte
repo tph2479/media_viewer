@@ -230,12 +230,12 @@
 
     <!-- Main Interaction Area -->
     <div
-        class="relative z-10 w-full h-full max-w-5xl flex flex-col md:flex-row items-center justify-center gap-6 md:gap-12 p-6 md:p-16 -translate-y-6 md:-translate-y-20"
+        class="relative z-10 w-full h-full max-w-[1400px] flex flex-col md:flex-row items-center justify-center gap-6 md:gap-12 p-6 md:p-16 -translate-y-6 md:-translate-y-20"
         in:fly={{ y: 20, duration: 600, easing: quintOut }}
     >
         <!-- Cover Art Panel -->
         <div
-            class="relative perspective-1000 w-full max-w-[200px] md:max-w-[420px] aspect-square flex-shrink-0"
+            class="relative perspective-1000 w-full max-w-[200px] md:max-w-[500px] aspect-square flex-shrink-0"
         >
             <!-- Card wrapper -->
             <div
@@ -265,7 +265,7 @@
             <div
                 class="absolute -right-6 top-1/2 -translate-y-1/2 w-[85%] h-[85%] bg-neutral-800 rounded-full border border-white/10 shadow-2xl -z-10 transition-all duration-1000 {s.isPlaying
                     ? 'translate-x-16 opacity-100'
-                    : 'translate-x-0 opacity-0'}"
+                    : 'translate-x-0 opacity-40'}"
                 style="background: radial-gradient(circle at center, #444444 0%, #262626 100%);"
             >
                 <div
@@ -275,7 +275,7 @@
                         <img
                             src={`/api/media?path=${encodeURIComponent(currentAudio?.path || "")}&thumbnail=true&v=${cacheVersion.value}`}
                             alt=""
-                            class="w-full h-full object-cover opacity-50 animate-spin-slow will-change-transform"
+                            class="w-full h-full object-cover opacity-50 will-change-transform"
                         />
                     {/if}
                 </div>
@@ -357,64 +357,41 @@
                 <div class="flex items-center justify-between gap-8">
                     <div class="flex items-center gap-6">
                         <button
-                            class="text-white/30 hover:text-white transition-all active:scale-90 focus:outline-none"
+                            class="text-white/30 hover:text-white transition-all active:scale-90 focus:outline-none p-1"
                             aria-label="Previous"
                             onclick={prev}
                             disabled={selectedImageIndex === 0 && currentPage === 0}
                             onmousedown={(e) => e.preventDefault()}
                         >
-                            <SkipBack class="h-6 w-6" />
+                            <SkipBack class="h-5 w-5" />
                         </button>
 
                         <button
-                            class="btn btn-circle btn-primary btn-lg shadow-xl hover:scale-105 active:scale-95 transition-all duration-300 ring-4 ring-white/10 focus:outline-none"
+                            class="text-white/30 hover:text-white transition-all active:scale-90 focus:outline-none p-1"
                             onclick={ctrl.togglePlay}
                             onmousedown={(e) => e.preventDefault()}
                         >
                             {#if s.isPlaying}
-                                <Pause class="h-8 w-8" />
+                                <Pause class="h-5 w-5" />
                             {:else}
-                                <Play class="h-8 w-8 ml-1" />
+                                <Play class="h-5 w-5" />
                             {/if}
                         </button>
 
                         <button
-                            class="text-white/30 hover:text-white transition-all active:scale-90 focus:outline-none"
+                            class="text-white/30 hover:text-white transition-all active:scale-90 focus:outline-none p-1"
                             aria-label="Next"
                             onclick={next}
                             disabled={selectedImageIndex ===
                                 loadedImages.length - 1 && !hasMore}
                             onmousedown={(e) => e.preventDefault()}
                         >
-                            <SkipForward class="h-6 w-6" />
-                        </button>
-
-                        <button
-                            class="btn btn-circle btn-primary btn-lg shadow-xl hover:scale-105 active:scale-95 transition-all duration-300 ring-4 ring-white/10 focus:outline-none"
-                            onclick={ctrl.togglePlay}
-                            onmousedown={(e) => e.preventDefault()}
-                        >
-                            {#if s.isPlaying}
-                                <Pause class="h-8 w-8" />
-                            {:else}
-                                <Play class="h-8 w-8 ml-1" />
-                            {/if}
-                        </button>
-
-                        <button
-                            class="text-white/30 hover:text-white transition-all active:scale-90 focus:outline-none"
-                            aria-label="Next"
-                            onclick={next}
-                            disabled={selectedImageIndex ===
-                                loadedImages.length - 1 && !hasMore}
-                            onmousedown={(e) => e.preventDefault()}
-                        >
-                            <SkipForward class="h-6 w-6" />
+                            <SkipForward class="h-5 w-5" />
                         </button>
 
                         {#if currentAudio?.isVideo && onSwitchToVideo}
                             <button
-                                class="ml-2 transition-all active:scale-90 focus:outline-none text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] hover:scale-110"
+                                class="ml-2 transition-all active:scale-90 focus:outline-none text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] hover:scale-110 p-1"
                                 onclick={onSwitchToVideo}
                                 title="Switch To Video Mode"
                                 onmousedown={(e) => e.preventDefault()}
@@ -425,26 +402,26 @@
 
                         <!-- Loop Toggle -->
                         <button
-                            class="ml-2 transition-all active:scale-90 focus:outline-none {s.isLooping
+                            class="ml-2 transition-all active:scale-90 focus:outline-none p-1 {s.isLooping
                                 ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]'
                                 : 'text-white/20'}"
                             onclick={() => (s.isLooping = !s.isLooping)}
                             title="Loop"
                             onmousedown={(e) => e.preventDefault()}
                         >
-                            <RotateCw class="h-4 w-4" />
+                            <RotateCw class="h-5 w-5" />
                         </button>
 
                         <!-- Auto Next Toggle -->
                         <button
-                            class="ml-2 transition-all active:scale-90 focus:outline-none {s.isAutoNext
+                            class="ml-2 transition-all active:scale-90 focus:outline-none p-1 {s.isAutoNext
                                 ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]'
                                 : 'text-white/20'}"
                             onclick={() => (s.isAutoNext = !s.isAutoNext)}
                             title="Auto Next"
                             onmousedown={(e) => e.preventDefault()}
                         >
-                            <SkipForward class="h-4 w-4" />
+                            <SkipForward class="h-5 w-5" />
                         </button>
                     </div>
 
@@ -453,14 +430,14 @@
                         class="flex items-center gap-3 w-32 border-l border-white/10 pl-8"
                     >
                         <button
-                            class="text-white/20 hover:text-white transition-colors focus:outline-none"
+                            class="text-white/20 hover:text-white transition-colors focus:outline-none p-1"
                             onclick={ctrl.toggleMute}
                             onmousedown={(e) => e.preventDefault()}
                         >
                             {#if s.isMuted || s.volume === 0}
-                                <VolumeX class="h-4 w-4" />
+                                <VolumeX class="h-5 w-5" />
                             {:else}
-                                <Volume2 class="h-4 w-4" />
+                                <Volume2 class="h-5 w-5" />
                             {/if}
                         </button>
                         <div
@@ -541,7 +518,6 @@
     }
 
     /* Performance hints */
-    svg,
     img {
         backface-visibility: hidden;
     }
