@@ -1,3 +1,4 @@
+import { isImageFile } from "$lib/server/fileUtils";
 import { json } from "@sveltejs/kit";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -15,7 +16,7 @@ const COVER_EXTENSIONS = new Set([
 export async function handleCovers(
   folderPath: string,
   page: number = 0,
-  limit: number = 30,
+  limit: number = 42,
 ) {
   const entries = await fs.readdir(folderPath, { withFileTypes: true });
   const dirs = entries.filter((e) => e.isDirectory());
@@ -46,14 +47,14 @@ export async function handleCovers(
           const lower = f.toLowerCase();
           const ext = path.extname(lower);
           const base = path.basename(lower, ext);
-          return base === "cover" && COVER_EXTENSIONS.has(ext);
+          return base === "cover" && isImageFile(ext);
         });
 
         // 2. Fallback to the first available image
         if (!coverFile) {
           coverFile = children.find((f) => {
             const lower = f.toLowerCase();
-            return COVER_EXTENSIONS.has(path.extname(lower));
+            return isImageFile(path.extname(lower));
           });
         }
 

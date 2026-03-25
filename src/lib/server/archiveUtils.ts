@@ -5,7 +5,7 @@ import fsp from "node:fs/promises";
 import { createHash } from "node:crypto";
 import yauzl from "yauzl-promise";
 import sharp from "sharp";
-import { ALLOWED_EXTENSIONS } from "./fileUtils";
+import { ALLOWED_EXTENSIONS, isImageFile } from "./fileUtils";
 import { globalTaskSemaphore } from "./semaphore";
 
 const THUMB_CACHE_DIR = path.resolve(".thumbnails");
@@ -101,12 +101,7 @@ export async function getArchiveCover(
           return null;
         }
         if (entry.filename.endsWith("/")) continue;
-        const ext = path.extname(entry.filename).toLowerCase();
-        // For covers, we want images, but not GIFs or videos
-        if (
-          ALLOWED_EXTENSIONS.has(ext) &&
-          ![".mp4", ".webm", ".gif"].includes(ext)
-        ) {
+        if (isImageFile(path.extname(entry.filename).toLowerCase())) {
           firstEntry = entry;
           break;
         }
@@ -144,7 +139,7 @@ export async function getArchiveCover(
           let converted: any = await heicConvert({
             buffer,
             format: "JPEG",
-            quality: 0.9,
+            quality: 0.6,
           });
           sharpInput = Buffer.from(converted);
         } catch (err) {
@@ -154,7 +149,7 @@ export async function getArchiveCover(
 
       await sharp(sharpInput)
         .rotate()
-        .resize(300, 300, { fit: "cover", fastShrinkOnLoad: true })
+        .resize(200, 200, { fit: "cover", fastShrinkOnLoad: true })
         .webp({ quality: 65, effort: 0 })
         .toFile(thumbPath);
 

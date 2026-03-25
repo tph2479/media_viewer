@@ -8,6 +8,8 @@ import {
   ensureHeicConverted,
 } from "$lib/server/archiveUtils";
 import { globalTaskSemaphore } from "$lib/server/semaphore";
+import { isVideoFile } from "$lib/utils/utils";
+import { isAudioFile } from "$lib/server/fileUtils";
 
 const ongoingGenerations = new Map<string, Promise<boolean>>();
 
@@ -25,27 +27,8 @@ export async function generateThumbnail(
       if (signal?.aborted) return false;
 
       const ext = path.extname(inputPath).toLowerCase();
-      const isVideo = [
-        ".mp4",
-        ".webm",
-        ".mkv",
-        ".avi",
-        ".flv",
-        ".mov",
-        ".m4v",
-      ].includes(ext);
-      const isAudio = [
-        ".mp3",
-        ".wav",
-        ".ogg",
-        ".flac",
-        ".m4a",
-        ".aac",
-        ".opus",
-        ".m4b",
-      ].includes(ext);
 
-      if (isVideo || isAudio) {
+      if (isVideoFile(ext) || isAudioFile(ext)) {
         try {
           const res = await globalTaskSemaphore.run(async () => {
             if (signal?.aborted) throw new Error("Aborted");
@@ -55,7 +38,7 @@ export async function generateThumbnail(
               "error",
               "-an",
               "-sn",
-              ...(isVideo ? ["-ss", "00:00:01"] : []),
+              ...(isVideoFile(ext) ? ["-ss", "00:00:02"] : []),
               "-i",
               inputPath,
               "-map",
@@ -96,7 +79,7 @@ export async function generateThumbnail(
 
               if (proc.exitCode !== 0 || stdout.byteLength === 0) {
                 const isNoCoverArt =
-                  isAudio &&
+                  isAudioFile(ext) &&
                   (stderr.includes("Output file is empty") ||
                     stderr.includes("matches no streams") ||
                     (stdout.byteLength === 0 && stderr.trim() === ""));
