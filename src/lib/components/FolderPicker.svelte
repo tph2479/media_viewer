@@ -1,261 +1,464 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
-	import { FolderOpen, ChevronLeft, RotateCw, HardDrive, Folder, FileText, X } from 'lucide-svelte';
-	type DirectoryEntry = { name: string; path: string; isDir?: boolean; isCbz?: boolean; isMedia?: boolean };
+    import { untrack } from "svelte";
+    import {
+        FolderOpen,
+        ChevronLeft,
+        RotateCw,
+        HardDrive,
+        Folder,
+        FileText,
+        X,
+        AlertCircle,
+        FolderX,
+    } from "lucide-svelte";
 
-	let {
-		isFolderPickerOpen = $bindable(),
-		folderPath = $bindable(),
-		availableDrives = $bindable([]),
-		isDrivesLoading,
-		onRefreshDrives,
-		onSelect,
-		onOpenFile
-	}: {
-		isFolderPickerOpen: boolean;
-		folderPath: string;
-		availableDrives: DirectoryEntry[];
-		isDrivesLoading: boolean;
-		onRefreshDrives?: () => Promise<void>;
-		onSelect: () => void;
-		onOpenFile?: (path: string, type: 'media' | 'cbz') => void;
-	} = $props();
+    type DirectoryEntry = {
+        name: string;
+        path: string;
+        isDir?: boolean;
+        isCbz?: boolean;
+        isMedia?: boolean;
+    };
 
-	let pickerCurrentPath = $state('This PC');
-	let pickerParentPath = $state<string | null>(null);
-	let pickerDirectories: DirectoryEntry[] = $state([]);
-	let isPickerLoading = $state(false);
-	let pickerError = $state('');
-	let pickerSummary = $state<{ count: number; sizeBytes: number; types: string[] } | null>(null);
-	let dialogEl: HTMLDivElement;
+    let {
+        isFolderPickerOpen = $bindable(),
+        folderPath = $bindable(),
+        availableDrives = $bindable([]),
+        isDrivesLoading,
+        onRefreshDrives,
+        onSelect,
+        onOpenFile,
+    }: {
+        isFolderPickerOpen: boolean;
+        folderPath: string;
+        availableDrives: DirectoryEntry[];
+        isDrivesLoading: boolean;
+        onRefreshDrives?: () => Promise<void>;
+        onSelect: () => void;
+        onOpenFile?: (path: string, type: "media" | "cbz") => void;
+    } = $props();
 
-	async function loadPickerData(pathQuery = '', force = false) {
-		// Optimization: If going to "This PC" levels and we already have drives, use them without re-scanning
-		if (!force && (pathQuery === '' || pathQuery === 'This PC') && availableDrives.length > 0) {
-			pickerCurrentPath = 'This PC';
-			pickerParentPath = null;
-			pickerDirectories = availableDrives;
-			pickerSummary = null;
-			return;
-		}
+    // ── OS Detection ──────────────────────────────────────────────
+    // Detect from the first available drive path returned by the server.
+    // Falls back to checking navigator.userAgent as a last resort.
+    const isWindows = $derived.by(() => {
+        if (availableDrives.length > 0) {
+            return /^[A-Za-z]:[\\\/]/.test(availableDrives[0].path);
+        }
+        return navigator.userAgent.toLowerCase().includes("win");
+    });
 
-		isPickerLoading = true;
-		pickerError = '';
-		try {
-			const res = await fetch(`/api/file?action=directories&path=${encodeURIComponent(pathQuery)}`);
-			const data = await res.json();
-			if (!res.ok) throw new Error(data.message || 'Error fetching directories');
+    const SEP = $derived(isWindows ? "\\" : "/");
 
-			pickerCurrentPath = data.currentPath || 'This PC';
-			pickerParentPath = data.parentPath;
-			pickerDirectories = data.directories;
-			pickerSummary = data.summary || null;
-		} catch (e: any) {
-			pickerError = e.message;
-		} finally {
-			isPickerLoading = false;
-		}
-	}
+    // ── Path helpers ──────────────────────────────────────────────
+    /** Normalize separators so we always compare with the native sep. */
+    function normalizePath(p: string): string {
+        if (!p) return p;
+        if (isWindows) return p.replace(/\//g, "\\");
+        return p.replace(/\\/g, "/");
+    }
 
-	let wasOpen = false;
-	$effect(() => {
-		if (isFolderPickerOpen && !wasOpen) {
-			untrack(() => {
-				let target = folderPath.trim();
-				if (target.length === 2 && target.endsWith(':')) {
-					target += '\\';
-				}
-				loadPickerData(target).catch(() => loadPickerData(''));
-				setTimeout(() => dialogEl?.focus(), 50);
-			});
-		}
-		wasOpen = isFolderPickerOpen;
-	});
+    /** Strip trailing separator unless it's a root path (C:\ or /). */
+    function stripTrailingSep(p: string): string {
+        const norm = normalizePath(p);
+        // Windows root: "C:\"  → keep
+        if (isWindows && /^[A-Za-z]:\\$/.test(norm)) return norm;
+        // Linux root: "/"     → keep
+        if (!isWindows && norm === "/") return norm;
+        return norm.replace(/[\\\/]+$/, "");
+    }
 
-	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape') close();
-	}
+    /** Root label shown when no drive / path is selected. */
+    const ROOT_LABEL = $derived(isWindows ? "This PC" : "File System");
 
-	function close() { isFolderPickerOpen = false; wasOpen = false; }
+    // ── State ─────────────────────────────────────────────────────
+    let pickerCurrentPath = $state("This PC");
+    let pickerParentPath = $state<string | null>(null);
+    let pickerDirectories: DirectoryEntry[] = $state([]);
+    let isPickerLoading = $state(false);
+    let pickerError = $state("");
+    let dialogEl: HTMLDivElement;
 
-	function confirm() {
-		if (pickerCurrentPath === 'This PC' || pickerCurrentPath === '') return;
-		let target = pickerCurrentPath;
-		if (target.length > 3 && (target.endsWith('\\') || target.endsWith('/'))) {
-			target = target.slice(0, -1);
-		}
-		folderPath = target;
-		isFolderPickerOpen = false;
-		onSelect();
-	}
+    // ── Data loading ──────────────────────────────────────────────
+    async function loadPickerData(pathQuery = "", force = false) {
+        const isRoot =
+            pathQuery === "" ||
+            pathQuery === "This PC" ||
+            pathQuery === "File System";
 
-	function handleEntryClick(dir: DirectoryEntry) {
-		if (dir.isDir === false && !dir.isCbz && !dir.isMedia) return;
-		if (dir.isDir !== false) {
-			loadPickerData(dir.path);
-			return;
-		}
+        if (!force && isRoot && availableDrives.length > 0) {
+            pickerCurrentPath = ROOT_LABEL;
+            pickerParentPath = null;
+            pickerDirectories = availableDrives;
+            return;
+        }
 
-		if (dir.isCbz) {
-			folderPath = dir.path;
-			isFolderPickerOpen = false;
-			onOpenFile?.(dir.path, 'cbz');
-			onSelect();
-			return;
-		}
+        isPickerLoading = true;
+        pickerError = "";
 
-		if (dir.isMedia) {
-			folderPath = pickerCurrentPath;
-			isFolderPickerOpen = false;
-			onOpenFile?.(dir.path, 'media');
-			onSelect();
-			return;
-		}
-	}
+        try {
+            const query = isRoot ? "" : normalizePath(pathQuery);
+            const res = await fetch(
+                `/api/file?action=directories&path=${encodeURIComponent(query)}`,
+            );
+            const data = await res.json();
+            if (!res.ok)
+                throw new Error(data.message || "Error fetching directories");
 
-	function entryStyle(dir: DirectoryEntry, isThisPC: boolean) {
-		if (isThisPC) return { color: 'text-info', icon: 'drive' };
-		if (dir.isDir) return { color: 'text-primary', icon: 'folder' };
-		if (dir.isCbz) return { color: 'text-warning', icon: 'archive' };
-		if (dir.isMedia) return { color: 'text-success', icon: 'media' };
-		return { color: 'opacity-40', icon: 'file' };
-	}
+            pickerCurrentPath = data.currentPath || ROOT_LABEL;
+            pickerParentPath = data.parentPath ?? null;
+            pickerDirectories = (data.directories as DirectoryEntry[]).map(
+                (d) => ({
+                    ...d,
+                    path: normalizePath(d.path),
+                }),
+            );
+        } catch (e: any) {
+            pickerError = e.message;
+        } finally {
+            isPickerLoading = false;
+        }
+    }
+
+    // ── Open effect ───────────────────────────────────────────────
+    let wasOpen = false;
+    $effect(() => {
+        if (isFolderPickerOpen && !wasOpen) {
+            untrack(() => {
+                let target = folderPath.trim();
+
+                // Windows: "C:" → "C:\"
+                if (isWindows && target.length === 2 && target.endsWith(":")) {
+                    target += "\\";
+                }
+                // Linux: ensure leading slash when non-empty
+                if (!isWindows && target && !target.startsWith("/")) {
+                    target = "/" + target;
+                }
+
+                loadPickerData(target).catch(() => loadPickerData(""));
+                setTimeout(() => dialogEl?.focus(), 50);
+            });
+        }
+        wasOpen = isFolderPickerOpen;
+    });
+
+    // ── Actions ───────────────────────────────────────────────────
+    function handleKeydown(e: KeyboardEvent) {
+        if (e.key === "Escape") close();
+    }
+    function close() {
+        isFolderPickerOpen = false;
+        wasOpen = false;
+    }
+
+    function confirm() {
+        if (pickerCurrentPath === ROOT_LABEL || pickerCurrentPath === "")
+            return;
+        folderPath = stripTrailingSep(pickerCurrentPath);
+        isFolderPickerOpen = false;
+        onSelect();
+    }
+
+    function handleEntryClick(dir: DirectoryEntry) {
+        if (dir.isDir === false && !dir.isCbz && !dir.isMedia) return;
+
+        if (dir.isDir !== false) {
+            loadPickerData(dir.path);
+            return;
+        }
+        if (dir.isCbz) {
+            folderPath = dir.path;
+            isFolderPickerOpen = false;
+            onOpenFile?.(dir.path, "cbz");
+            onSelect();
+            return;
+        }
+        if (dir.isMedia) {
+            folderPath = pickerCurrentPath;
+            isFolderPickerOpen = false;
+            onOpenFile?.(dir.path, "media");
+            onSelect();
+            return;
+        }
+    }
+
+    // ── UI helpers ────────────────────────────────────────────────
+    function getEntryMeta(dir: DirectoryEntry, isRoot: boolean) {
+        if (isRoot) return { colorClass: "text-tertiary-500", icon: "drive" };
+        if (dir.isDir)
+            return { colorClass: "text-primary-500", icon: "folder" };
+        if (dir.isCbz)
+            return { colorClass: "text-warning-500", icon: "archive" };
+        if (dir.isMedia)
+            return { colorClass: "text-success-500", icon: "media" };
+        return { colorClass: "opacity-30", icon: "file" };
+    }
+
+    const isAtRoot = $derived(
+        pickerCurrentPath === ROOT_LABEL || pickerCurrentPath === "",
+    );
+    const canConfirm = $derived(!isAtRoot && !isPickerLoading && !pickerError);
+
+    /** Drive/root label shown in the quick-nav chips.
+     *  Windows → "C", "D" …   Linux → "/", "~", "/media/…" last segment */
+    function driveLabel(drive: DirectoryEntry): string {
+        if (isWindows) return drive.name.replace(/[\\:]/g, "");
+        // For Linux show last path segment or "/" for root
+        const segs = drive.path.replace(/\/$/, "").split("/").filter(Boolean);
+        return segs.length === 0 ? "/" : segs[segs.length - 1];
+    }
 </script>
 
+<!-- Backdrop -->
 <div
-	role="dialog"
-	aria-modal="true"
-	aria-label="Select Directory"
-	tabindex="-1"
-	class="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm grid place-items-center p-4 animate-in fade-in duration-200 outline-none"
-	onclick={close}
-	onkeydown={handleKeydown}
-	bind:this={dialogEl}
+    role="dialog"
+    aria-modal="true"
+    aria-label="Select Directory"
+    tabindex="-1"
+    class="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm grid place-items-center p-4 outline-none"
+    onclick={close}
+    onkeydown={handleKeydown}
+    bind:this={dialogEl}
 >
-	<div
-		role="presentation"
-		class="bg-base-100 w-[580px] h-[620px] max-w-[95vw] max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden pointer-events-auto border border-base-content/10 relative"
-		onclick={(e) => e.stopPropagation()}
-	>
-		<!-- Header -->
-		<div class="px-6 py-4 flex justify-between items-center bg-base-200/50 border-b border-base-content/5">
-			<div class="flex items-center gap-3">
-				<FolderOpen class="h-6 w-6 text-primary" />
-				<h3 class="font-black text-lg tracking-tight uppercase leading-none">Explorer</h3>
-			</div>
-			<button class="btn btn-sm btn-circle btn-ghost" onclick={close}><X class="h-4 w-4" /></button>
-		</div>
+    <!-- Card -->
+    <div
+        role="presentation"
+        class="
+			w-[580px] h-[620px] max-w-[95vw] max-h-[90vh]
+			flex flex-col overflow-hidden rounded-2xl shadow-2xl
+			bg-white dark:bg-surface-800
+			border border-gray-200 dark:border-surface-600
+		"
+        onclick={(e) => e.stopPropagation()}
+    >
+        <!-- Header -->
+        <div
+            class="flex items-center justify-between px-5 py-3.5
+			bg-gray-50 dark:bg-surface-700
+			border-b border-gray-200 dark:border-surface-600"
+        >
+            <div class="flex items-center gap-2.5">
+                <span class="p-1.5 rounded-lg bg-primary-500/10">
+                    <FolderOpen class="h-5 w-5 text-primary-500" />
+                </span>
+                <span
+                    class="text-sm font-semibold text-gray-800 dark:text-white tracking-wide"
+                >
+                    File Explorer
+                </span>
+                <!-- OS indicator badge -->
+                <span
+                    class="text-[10px] font-bold px-2 py-0.5 rounded-md
+					bg-gray-200 dark:bg-surface-600
+					text-gray-500 dark:text-gray-400 tracking-widest uppercase"
+                >
+                    {isWindows ? "Windows" : "Linux"}
+                </span>
+            </div>
+            <button
+                class="btn-icon btn-icon-sm variant-ghost-surface rounded-lg"
+                onclick={close}
+                aria-label="Close"
+            >
+                <X class="h-4 w-4" />
+            </button>
+        </div>
 
-		<!-- Path Address Bar -->
-		<div class="px-6 py-3 flex gap-2 items-center bg-base-200 border-b border-base-content/5">
-			<button
-					class="btn btn-sm btn-square btn-ghost"
-					aria-label="Go to parent directory"
-					disabled={pickerParentPath === null}
-					onclick={() => { if (pickerParentPath !== null) loadPickerData(pickerParentPath); }}
-				>
-				<ChevronLeft class="h-5 w-5" />
-			</button>
+        <!-- Address Bar -->
+        <div
+            class="flex items-center gap-2 px-4 py-2.5
+			bg-gray-50 dark:bg-surface-700
+			border-b border-gray-200 dark:border-surface-600"
+        >
+            <button
+                class="btn-icon btn-icon-sm variant-ghost-surface rounded-lg disabled:opacity-30"
+                disabled={pickerParentPath === null}
+                onclick={() => {
+                    if (pickerParentPath !== null)
+                        loadPickerData(pickerParentPath);
+                }}
+                aria-label="Go up"
+            >
+                <ChevronLeft class="h-4 w-4" />
+            </button>
 
-			<div class="flex-1 bg-base-100 px-4 py-2 rounded-xl text-sm font-bold border border-base-content/10 truncate opacity-70" title={pickerCurrentPath}>
-				{pickerCurrentPath}
-			</div>
+            <!-- Path segments breadcrumb -->
+            <div
+                class="flex-1 min-w-0 px-3 py-1.5 rounded-lg text-xs font-mono truncate
+				bg-white dark:bg-surface-900
+				border border-gray-200 dark:border-surface-600
+				text-gray-600 dark:text-gray-300"
+                title={pickerCurrentPath}
+            >
+                {#if isAtRoot}
+                    <span class="opacity-50">{ROOT_LABEL}</span>
+                {:else}
+                    {pickerCurrentPath}
+                {/if}
+            </div>
 
-			<button
-				class="btn btn-sm btn-square btn-ghost {isPickerLoading || isDrivesLoading ? 'loading' : ''}"
-				title="Refresh All"
-				onclick={() => {
-					loadPickerData(pickerCurrentPath, true);
-					onRefreshDrives?.();
-				}}
-			>
-				{#if !isPickerLoading && !isDrivesLoading}
-					<RotateCw class="h-4 w-4" />
-				{/if}
-			</button>
-		</div>
+            <button
+                class="btn-icon btn-icon-sm variant-ghost-surface rounded-lg
+					{isPickerLoading || isDrivesLoading
+                    ? 'animate-spin opacity-50 pointer-events-none'
+                    : ''}"
+                onclick={() => {
+                    loadPickerData(pickerCurrentPath, true);
+                    onRefreshDrives?.();
+                }}
+                aria-label="Refresh"
+            >
+                <RotateCw class="h-4 w-4" />
+            </button>
+        </div>
 
-		<!-- List Section -->
-		<div class="flex-1 overflow-y-auto p-2 bg-base-100 custom-scrollbar">
-			{#if isPickerLoading}
-				<div class="flex flex-col justify-center items-center h-full gap-4 opacity-50 py-10">
-					<span class="loading loading-ring loading-md"></span>
-					<p class="font-bold text-[10px] uppercase tracking-widest">Reading</p>
-				</div>
-			{:else if pickerError}
-				<div class="alert alert-error rounded-xl m-4 text-xs">
-					<span class="font-bold uppercase tracking-tight">{pickerError}</span>
-				</div>
-			{:else if pickerDirectories.length === 0}
-				<div class="flex flex-col justify-center items-center h-full opacity-20 py-20">
-					<p class="font-black text-xs uppercase tracking-widest italic">Directory empty</p>
-				</div>
-			{:else}
-				<ul class="menu menu-sm w-full font-bold">
-					{#each pickerDirectories as dir}
-						{@const isThisPC = pickerCurrentPath === 'This PC'}
-						{@const style = entryStyle(dir, isThisPC)}
-						<li>
-							<button
-												class="flex gap-4 py-3 rounded-xl transition-all w-full text-left {style.color} {isPickerLoading ? 'pointer-events-none opacity-50' : 'hover:bg-primary/5 active:scale-[0.98]'}"
-												onclick={() => handleEntryClick(dir)}
-											>
-								{#if style.icon === 'drive'}
-									<HardDrive class="h-5 w-5" />
-								{:else if style.icon === 'folder'}
-									<Folder class="h-6 w-6" />
-								{:else}
-									<FileText class="h-5 w-5" />
-								{/if}
-								<span class="truncate text-base-content">{dir.name}</span>
-								{#if dir.isCbz}
-									<div class="badge badge-warning badge-xs font-black p-2 ml-auto">CBZ</div>
-								{/if}
-							</button>
-						</li>
-					{/each}
-				</ul>
-			{/if}
-		</div>
+        <!-- File List -->
+        <div
+            class="flex-1 overflow-y-auto p-2 bg-white dark:bg-surface-800 custom-scroll"
+        >
+            {#if isPickerLoading}
+                <div
+                    class="flex flex-col items-center justify-center h-full gap-3 py-10 text-gray-400"
+                >
+                    <div
+                        class="w-6 h-6 rounded-full border-2 border-primary-500 border-t-transparent animate-spin"
+                    ></div>
+                    <span class="text-xs font-medium tracking-widest uppercase"
+                        >Loading…</span
+                    >
+                </div>
+            {:else if pickerError}
+                <div
+                    class="m-3 p-4 rounded-xl flex items-start gap-3
+					bg-red-50 dark:bg-red-900/20
+					border border-red-200 dark:border-red-700/50"
+                >
+                    <AlertCircle class="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+                    <p
+                        class="text-xs font-medium text-red-700 dark:text-red-300"
+                    >
+                        {pickerError}
+                    </p>
+                </div>
+            {:else if pickerDirectories.length === 0}
+                <div
+                    class="flex flex-col items-center justify-center h-full gap-3 py-20 text-gray-400"
+                >
+                    <FolderX class="h-10 w-10 opacity-20" />
+                    <span
+                        class="text-xs font-medium tracking-widest uppercase opacity-40"
+                        >Empty directory</span
+                    >
+                </div>
+            {:else}
+                <ul class="flex flex-col gap-0.5">
+                    {#each pickerDirectories as dir}
+                        {@const meta = getEntryMeta(dir, isAtRoot)}
+                        <li>
+                            <button
+                                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left
+									transition-colors duration-100
+									hover:bg-gray-100 dark:hover:bg-surface-700
+									active:scale-[0.99]
+									{isPickerLoading ? 'pointer-events-none opacity-40' : ''}"
+                                onclick={() => handleEntryClick(dir)}
+                            >
+                                <span class="{meta.colorClass} shrink-0">
+                                    {#if meta.icon === "drive"}
+                                        <HardDrive class="h-4 w-4" />
+                                    {:else if meta.icon === "folder"}
+                                        <Folder class="h-4 w-4" />
+                                    {:else}
+                                        <FileText class="h-4 w-4" />
+                                    {/if}
+                                </span>
 
-		<!-- Compact DaisyUI Footer -->
-		<div class="px-6 py-5 bg-base-200 border-t border-base-content/5 flex justify-between items-center">
-			<!-- Persistent Drive Quick Selector -->
-			<div class="flex gap-1.5 overflow-x-auto no-scrollbar max-w-[65%] items-center py-1.5 px-0.5">
-				{#each availableDrives as drive}
-					{@const isActive = pickerCurrentPath.startsWith(drive.path)}
-					<button
-						class="btn btn-xs h-9 w-10 px-0 rounded-xl border-none relative transition-all duration-200 {isActive ? 'btn-primary shadow-lg shadow-primary/30 z-10' : 'bg-base-100 hover:bg-base-300'}"
-						disabled={isPickerLoading}
-						onclick={() => loadPickerData(drive.path)}
-						title={drive.name}
-					>
-						<span class="font-black uppercase tracking-tight">{drive.name.replace('\\', '').replace(':', '')}</span>
-					</button>
-				{/each}
-			</div>
+                                <span
+                                    class="flex-1 truncate text-sm font-medium text-gray-700 dark:text-gray-200"
+                                >
+                                    {dir.name}
+                                </span>
 
-			<div class="flex gap-2">
-				<button class="btn btn-sm btn-ghost px-4 rounded-xl font-bold" onclick={close}>Cancel</button>
-				<button
-					class="btn btn-sm btn-primary px-6 rounded-xl font-black uppercase text-[11px] tracking-widest"
-					disabled={pickerCurrentPath === 'This PC' || pickerCurrentPath === '' || isPickerLoading || !!pickerError}
-					onclick={confirm}
-				>
-					Select
-				</button>
-			</div>
-		</div>
-	</div>
+                                {#if dir.isCbz}
+                                    <span
+                                        class="badge variant-filled-warning text-[10px] font-bold px-2 py-0.5 rounded-md"
+                                    >
+                                        CBZ
+                                    </span>
+                                {/if}
+                            </button>
+                        </li>
+                    {/each}
+                </ul>
+            {/if}
+        </div>
+
+        <!-- Footer -->
+        <div
+            class="flex items-center justify-between px-4 py-3
+			bg-gray-50 dark:bg-surface-700
+			border-t border-gray-200 dark:border-surface-600"
+        >
+            <!-- Drive / root quick-nav chips -->
+            <div
+                class="flex items-center gap-1.5 overflow-x-auto no-scrollbar max-w-[60%]"
+            >
+                {#each availableDrives as drive}
+                    {@const isActive = pickerCurrentPath.startsWith(drive.path)}
+                    <button
+                        class="chip shrink-0 text-xs font-bold px-2.5 py-1 rounded-lg transition-all
+							{isActive
+                            ? 'variant-filled-primary'
+                            : 'bg-white dark:bg-surface-600 hover:bg-gray-100 dark:hover:bg-surface-500 text-gray-700 dark:text-gray-200'}"
+                        disabled={isPickerLoading}
+                        onclick={() => loadPickerData(drive.path)}
+                        title={drive.path}
+                    >
+                        {driveLabel(drive)}
+                    </button>
+                {/each}
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center gap-2">
+                <button
+                    class="btn btn-sm variant-ghost-surface rounded-lg text-xs font-semibold px-4"
+                    onclick={close}
+                >
+                    Cancel
+                </button>
+                <button
+                    class="btn btn-sm variant-filled-primary rounded-lg text-xs font-bold px-5 disabled:opacity-40"
+                    disabled={!canConfirm}
+                    onclick={confirm}
+                >
+                    Select
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <style>
-	.custom-scrollbar::-webkit-scrollbar { width: 4px; }
-	.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
-
-	.no-scrollbar {
-		-ms-overflow-style: none;
-		scrollbar-width: none;
-	}
-	.no-scrollbar::-webkit-scrollbar { display: none; }
+    .custom-scroll::-webkit-scrollbar {
+        width: 4px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+        background: rgba(128, 128, 128, 0.2);
+        border-radius: 99px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+        background: rgba(128, 128, 128, 0.4);
+    }
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
 </style>

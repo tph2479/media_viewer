@@ -24,7 +24,7 @@
         await s.refreshDrives();
 
         // Auto load last folder if exists
-        if (s.folderPath && s.folderPath !== "C:\\Users") {
+        if (s.folderPath) {
             s.folderPath = s.normalizePath(s.folderPath);
             const savedPage = s.folderPageHistory[s.folderPath] || 0;
             s.loadFolder(true, savedPage);
@@ -47,16 +47,7 @@
     });
 
     onDestroy(() => {
-        // Reset state so when returning to this page from gallery etc., it is fresh
-        s.loadedImages = [];
-        s.totalImagesCount = 0;
-        s.totalVideosCount = 0;
-        s.totalAudioCount = 0;
-        s.totalEbookCount = 0;
-        s.totalMedia = 0;
-        s.currentPage = 0;
-        s.hasMore = false;
-        s.isFolderSelected = false;
+        s.reset();
     });
 </script>
 

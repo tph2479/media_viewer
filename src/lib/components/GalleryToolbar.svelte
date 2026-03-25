@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { ImageFile } from '$lib/utils/utils';
+    import type { ImageFile } from "$lib/utils/utils";
     import {
         FolderOpen,
         ArrowUp,
@@ -255,7 +255,7 @@
                         title="{opt.label} ({opt.count})"
                     >
                         <opt.icon size={16} />
-                        <span class="leading-none">{opt.label}</span>
+                        <!-- <span class="leading-none">{opt.label}</span> -->
                         <span class="text-[10px]">{opt.count}</span>
                     </button>
                 {/each}
@@ -269,7 +269,7 @@
                 {#each sortOptions as opt}
                     <button
                         class="py-1.5 text-xs rounded-container transition-colors
-                               border border-surface-200-800
+                               border border-surface-200-800 lowercase
                                {currentSort === opt.value
                             ? 'preset-filled-primary-500'
                             : 'hover:preset-tonal-surface'}"

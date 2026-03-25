@@ -1,20 +1,9 @@
 <script lang="ts">
-    import {
-        isVideoFile,
-        isZipFile,
-        isCbzFile,
-        isPdfFile,
-        isEpubFile,
-        handleImageError,
-        formatBytes,
-        formatDate,
-        type ImageFile,
-    } from '$lib/utils/utils';
+    import { type ImageFile } from '$lib/utils/utils';
     import { cacheVersion } from "$lib/stores/cache.svelte";
     import { lazyThumbnail } from '$lib/utils/thumbnailLoader';
     import FileCard from "./FileCard.svelte";
 
-    // Import Lucide Icons
     import {
         ArrowLeft,
         Folder,
@@ -24,63 +13,80 @@
         ArrowRight,
     } from "lucide-svelte";
 
+    type GroupInfo = { items: ImageFile[]; total: number };
+    type GroupedData = Record<string, GroupInfo>;
     type CoverFolder = { name: string; path: string; coverPath: string };
 
-    let {
-        loadedImages = $bindable(),
-        isGrouped = false,
-        groupedData = null,
-        totalImages,
-        currentPage,
-        hasMore,
-        isLoading,
-        PAGE_SIZE,
-        onOpenModal,
-        onOpenCbz,
-        onOpenDir,
-        onLoadPage,
-        onOpenGroup,
-        coverFolders = [],
-        coverFoldersTotal = 0,
-        coverFoldersPage = 0,
-        coverFoldersHasMore = false,
-        isCoverMode = false,
-        onExitCoverMode,
-        onCoverFolderClick,
-        onLoadCoverPage,
-    }: {
-        loadedImages: ImageFile[];
-        isGrouped?: boolean;
-        groupedData?: any;
-        totalImages: number;
+    type PaginationState = {
         currentPage: number;
         hasMore: boolean;
-        isLoading: boolean;
-        PAGE_SIZE: number;
-        onOpenModal: (index: number, items?: ImageFile[]) => void;
-        onOpenCbz: (path: string) => void;
-        onOpenDir: (path: string) => void;
-        onLoadPage: (page: number) => void;
-        onOpenGroup?: (type: string) => void;
-        coverFolders?: CoverFolder[];
-        coverFoldersTotal?: number;
-        coverFoldersPage?: number;
-        coverFoldersHasMore?: boolean;
-        isCoverMode?: boolean;
-        onExitCoverMode?: () => void;
-        onCoverFolderClick?: (path: string) => void;
-        onLoadCoverPage?: (page: number) => void;
+        pageSize: number;
+        total: number;
+        onPageChange: (page: number) => void;
+    };
+
+    type CoverModeState = {
+        enabled: boolean;
+        folders: CoverFolder[];
+        total: number;
+        page: number;
+        hasMore: boolean;
+        onFolderClick: (path: string) => void;
+        onExit: () => void;
+        onPageChange: (page: number) => void;
+    };
+
+    type GalleryActions = {
+        openModal: (index: number, items?: ImageFile[]) => void;
+        openCbz: (path: string) => void;
+        openDir: (path: string) => void;
+        openGroup?: (type: string) => void;
+    };
+
+    let {
+        items = $bindable<ImageFile[]>([]),
+        isGrouped = false,
+        groupedData = null,
+        isLoading = false,
+        highlightedPath = null,
+        pagination = {
+            currentPage: 0,
+            hasMore: false,
+            pageSize: 60,
+            total: 0,
+            onPageChange: () => {}
+        },
+        coverMode = {
+            enabled: false,
+            folders: [],
+            total: 0,
+            page: 0,
+            hasMore: false,
+            onFolderClick: () => {},
+            onExit: () => {},
+            onPageChange: () => {}
+        },
+        actions,
+    }: {
+        items?: ImageFile[];
+        isGrouped?: boolean;
+        groupedData?: GroupedData | null;
+        isLoading?: boolean;
+        highlightedPath?: string | null;
+        pagination?: PaginationState;
+        coverMode?: CoverModeState;
+        actions: GalleryActions;
     } = $props();
 
-    const totalPages = $derived(Math.ceil(totalImages / PAGE_SIZE));
-    const totalCoverPages = $derived(Math.ceil(coverFoldersTotal / PAGE_SIZE));
+    const totalPages = $derived(Math.ceil(pagination.total / pagination.pageSize));
+    const totalCoverPages = $derived(Math.ceil(coverMode.total / pagination.pageSize));
 </script>
 
-{#if isCoverMode && coverFolders.length > 0}
+{#if coverMode.enabled && coverMode.folders.length > 0}
     <div class="flex items-center gap-3 mb-4">
         <button
             class="btn btn-sm btn-ghost rounded-lg gap-1 border border-primary/30"
-            onclick={() => onExitCoverMode?.()}
+            onclick={() => coverMode.onExit()}
             onmousedown={(e) => e.preventDefault()}
         >
             <ArrowLeft size={16} />
@@ -92,18 +98,18 @@
             Cover Folders
         </h2>
         <span class="badge badge-primary badge-sm font-bold opacity-80"
-            >{coverFoldersTotal}</span
+            >{coverMode.total}</span
         >
     </div>
 
     <div
         class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3 sm:gap-4 pb-10"
     >
-        {#each coverFolders as folder}
+        {#each coverMode.folders as folder}
             <div class="group flex flex-col">
                 <button
                     class="relative aspect-square bg-base-300 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:ring-2 hover:ring-teal-500/50 transition-all duration-300 cursor-pointer border-2 border-teal-500/20 hover:border-teal-500/40 w-full"
-                    onclick={() => onCoverFolderClick?.(folder.path)}
+                    onclick={() => coverMode.onFolderClick(folder.path)}
                 >
                     <img
                         use:lazyThumbnail={`/api/media?path=${encodeURIComponent(folder.coverPath)}&thumbnail=true&v=${cacheVersion.value}`}
@@ -147,9 +153,9 @@
             class="flex flex-wrap justify-center items-center gap-2 mt-2 mb-10 w-full"
         >
             <button
-                onclick={() => onLoadCoverPage?.(coverFoldersPage - 1)}
+                onclick={() => coverMode.onPageChange(coverMode.page - 1)}
                 class="btn btn-sm btn-outline btn-square shadow-sm"
-                disabled={coverFoldersPage === 0 || isLoading}
+                disabled={coverMode.page === 0 || isLoading}
                 aria-label="Previous page"
                 onmousedown={(e) => e.preventDefault()}
             >
@@ -157,10 +163,10 @@
             </button>
             <div class="flex items-center gap-1 font-mono text-sm">
                 {#each Array.from({ length: totalCoverPages }) as _, i}
-                    {#if i === 0 || i === totalCoverPages - 1 || Math.abs(i - coverFoldersPage) <= 2}
+                    {#if i === 0 || i === totalCoverPages - 1 || Math.abs(i - coverMode.page) <= 2}
                         <button
-                            onclick={() => onLoadCoverPage?.(i)}
-                            class="btn btn-sm shadow-sm {coverFoldersPage === i
+                            onclick={() => coverMode.onPageChange(i)}
+                            class="btn btn-sm shadow-sm {coverMode.page === i
                                 ? 'btn-primary'
                                 : 'btn-ghost'}"
                             disabled={isLoading}
@@ -168,15 +174,15 @@
                         >
                             {i + 1}
                         </button>
-                    {:else if Math.abs(i - coverFoldersPage) === 3}
+                    {:else if Math.abs(i - coverMode.page) === 3}
                         <span class="opacity-50 px-1">...</span>
                     {/if}
                 {/each}
             </div>
             <button
-                onclick={() => onLoadCoverPage?.(coverFoldersPage + 1)}
+                onclick={() => coverMode.onPageChange(coverMode.page + 1)}
                 class="btn btn-sm btn-outline btn-square shadow-sm"
-                disabled={!coverFoldersHasMore || isLoading}
+                disabled={!coverMode.hasMore || isLoading}
                 aria-label="Next page"
                 onmousedown={(e) => e.preventDefault()}
             >
@@ -184,7 +190,7 @@
             </button>
         </div>
     {/if}
-{:else if loadedImages.length === 0 && !isGrouped}
+{:else if items.length === 0 && !isGrouped}
     {#if isLoading}
         <div
             class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3 sm:gap-4 pb-6 animate-pulse"
@@ -267,17 +273,18 @@
                             <FileCard
                                 {img}
                                 index={i}
-                                {onOpenDir}
-                                {onOpenCbz}
+                                highlighted={highlightedPath === img.path}
+                                onOpenDir={actions.openDir}
+                                onOpenCbz={actions.openCbz}
                                 onOpenModal={(idx) =>
-                                    onOpenModal(idx, groupInfo.items)}
+                                    actions.openModal(idx, groupInfo.items)}
                             />
                         {/each}
 
                         {#if groupInfo.total > 11}
                             <button
                                 class="relative aspect-square rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:ring-2 hover:ring-primary/50 transition-all duration-300 cursor-pointer border border-primary/20 bg-primary/5 flex flex-col items-center justify-center group w-full"
-                                onclick={() => onOpenGroup?.(groupKey)}
+                                onclick={() => actions.openGroup?.(groupKey)}
                             >
                                 <div
                                     class="bg-primary/20 p-4 rounded-full group-hover:bg-primary/30 transition-colors group-hover:scale-110 duration-300"
@@ -298,17 +305,18 @@
             {/if}
         {/each}
     </div>
-{:else}
+    {:else}
     <div
         class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3 sm:gap-4 pb-10"
     >
-        {#each loadedImages as _, i}
+        {#each items as _, i}
             <FileCard
-                bind:img={loadedImages[i]}
+                bind:img={items[i]}
                 index={i}
-                {onOpenDir}
-                {onOpenCbz}
-                {onOpenModal}
+                highlighted={highlightedPath === items[i].path}
+                onOpenDir={actions.openDir}
+                onOpenCbz={actions.openCbz}
+                onOpenModal={actions.openModal}
             />
         {/each}
     </div>
@@ -318,9 +326,9 @@
             class="flex flex-wrap justify-center items-center gap-2 mt-2 mb-10 w-full"
         >
             <button
-                onclick={() => onLoadPage(currentPage - 1)}
+                onclick={() => pagination.onPageChange(pagination.currentPage - 1)}
                 class="btn btn-sm btn-outline btn-square shadow-sm"
-                disabled={currentPage === 0 || isLoading}
+                disabled={pagination.currentPage === 0 || isLoading}
                 aria-label="Previous page"
                 onmousedown={(e) => e.preventDefault()}
             >
@@ -329,10 +337,10 @@
 
             <div class="flex items-center gap-1 font-mono text-sm">
                 {#each Array.from({ length: totalPages }) as _, i}
-                    {#if i === 0 || i === totalPages - 1 || Math.abs(i - currentPage) <= 2}
+                    {#if i === 0 || i === totalPages - 1 || Math.abs(i - pagination.currentPage) <= 2}
                         <button
-                            onclick={() => onLoadPage(i)}
-                            class="btn btn-sm shadow-sm {currentPage === i
+                            onclick={() => pagination.onPageChange(i)}
+                            class="btn btn-sm shadow-sm {pagination.currentPage === i
                                 ? 'btn-primary'
                                 : 'btn-ghost'}"
                             disabled={isLoading}
@@ -340,16 +348,16 @@
                         >
                             {i + 1}
                         </button>
-                    {:else if Math.abs(i - currentPage) === 3}
+                    {:else if Math.abs(i - pagination.currentPage) === 3}
                         <span class="opacity-50 px-1">...</span>
                     {/if}
                 {/each}
             </div>
 
             <button
-                onclick={() => onLoadPage(currentPage + 1)}
+                onclick={() => pagination.onPageChange(pagination.currentPage + 1)}
                 class="btn btn-sm btn-outline btn-square shadow-sm"
-                disabled={!hasMore || isLoading}
+                disabled={!pagination.hasMore || isLoading}
                 aria-label="Next page"
                 onmousedown={(e) => e.preventDefault()}
             >
