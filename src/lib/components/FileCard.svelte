@@ -6,8 +6,6 @@
         isCbzFile,
         isPdfFile,
         isEpubFile,
-        handleImageError,
-        formatBytes,
         type ImageFile,
     } from "$lib/utils/utils";
     import { cacheVersion } from "$lib/stores/cache.svelte";
@@ -18,40 +16,41 @@
         FileText,
         FileVideo,
         FileAudio,
-        File,
         Play,
     } from "lucide-svelte";
+
+    type FileActions = {
+        openDir: (path: string) => void;
+        openCbz: (path: string) => void;
+        openModal: (index: number) => void;
+    };
 
     let {
         img = $bindable(),
         index,
         highlighted = false,
-        onOpenDir,
-        onOpenCbz,
-        onOpenModal,
+        actions,
     }: {
         img: ImageFile;
         index: number;
         highlighted?: boolean;
-        onOpenDir: (path: string) => void;
-        onOpenCbz: (path: string) => void;
-        onOpenModal: (index: number) => void;
+        actions: FileActions;
     } = $props();
 
     function handleCardClick() {
         if (img.isDir) {
-            onOpenDir(img.path);
+            actions.openDir(img.path);
             return;
         }
         if (img.isCbz) {
-            onOpenCbz(img.path);
+            actions.openCbz(img.path);
             return;
         }
         if (img.isPdf) {
-            onOpenModal(index);
+            actions.openModal(index);
             return;
         }
-        onOpenModal(index);
+        actions.openModal(index);
     }
 
     let hoverTimer: any = null;
@@ -250,7 +249,7 @@
             <div
                 class="text-[9px] font-mono font-black text-primary/50 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-[-2px] group-hover:translate-y-0"
             >
-                {img.width}x{img.height} • {formatBytes(img.size)}
+                {img.width}x{img.height}
             </div>
         {/if}
     </div>

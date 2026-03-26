@@ -172,7 +172,7 @@ export function createBrowserStore() {
 
   async function loadFolder(reset = true, pageToLoad = 0, append = false) {
     if (!folder.path.trim()) {
-      ui.error = "Please enter a directory path.";
+      modal.folderPicker.open = true;
       return;
     }
 
@@ -293,9 +293,11 @@ export function createBrowserStore() {
     if (items) content.items = items;
     modal.image.index = index;
 
-    if (img.isVideo) modal.video.open = true;
-    else if (img.isAudio) modal.audio.open = true;
-    else if (img.isPdf) openPdfReader(img.path);
+    if (img.isVideo) {
+      modal.video.open = true;
+    } else if (img.isAudio) {
+      modal.audio.open = true;
+    } else if (img.isPdf) openPdfReader(img.path);
     else if (img.isEpub) console.log("EPUB clicked:", img.path);
     else modal.image.open = true;
   }

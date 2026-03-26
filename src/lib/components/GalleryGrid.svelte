@@ -274,10 +274,11 @@
                                 {img}
                                 index={i}
                                 highlighted={highlightedPath === img.path}
-                                onOpenDir={actions.openDir}
-                                onOpenCbz={actions.openCbz}
-                                onOpenModal={(idx) =>
-                                    actions.openModal(idx, groupInfo.items)}
+                                actions={{
+                                    openDir: actions.openDir,
+                                    openCbz: actions.openCbz,
+                                    openModal: (idx) => actions.openModal(idx, groupInfo.items),
+                                }}
                             />
                         {/each}
 
@@ -314,9 +315,11 @@
                 bind:img={items[i]}
                 index={i}
                 highlighted={highlightedPath === items[i].path}
-                onOpenDir={actions.openDir}
-                onOpenCbz={actions.openCbz}
-                onOpenModal={actions.openModal}
+                actions={{
+                    openDir: actions.openDir,
+                    openCbz: actions.openCbz,
+                    openModal: actions.openModal,
+                }}
             />
         {/each}
     </div>

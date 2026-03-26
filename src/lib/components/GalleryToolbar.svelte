@@ -13,43 +13,69 @@
         ChevronsRight,
     } from "lucide-svelte";
 
-    let {
-        folderPath = $bindable(),
-        currentSort = $bindable(),
-        mediaType = $bindable(),
-        isLoading,
-        isFolderSelected,
-        isGrouped = false,
-        loadedImages,
-        totalItems,
-        totalImages = 0,
-        totalVideos = 0,
-        totalAudio = 0,
-        totalEbook = 0,
-        onLoad,
-        onOpenPicker,
-        onOpenWebtoon,
-        onGoUp,
-    }: {
-        folderPath: string;
-        currentSort: string;
-        isLoading: boolean;
+    type FolderState = {
+        path: string;
         isFolderSelected: boolean;
-        isGrouped?: boolean;
-        loadedImages: ImageFile[];
-        totalImages?: number;
-        totalVideos?: number;
-        totalAudio?: number;
-        totalEbook?: number;
-        totalItems: number;
+        isGrouped: boolean;
+        items: ImageFile[];
+        onPathChange?: (v: string) => void;
+    };
+
+    type StatsState = {
+        items: number;
+        images: number;
+        videos: number;
+        audio: number;
+        ebook: number;
+    };
+
+    type SortState = {
+        current: "date_desc" | "date_asc" | "name_asc" | "name_desc" | "size_asc" | "size_desc";
+        onChange: (v: "date_desc" | "date_asc" | "name_asc" | "name_desc" | "size_asc" | "size_desc") => void;
+    };
+
+    type FilterState = {
+        type: "all" | "images" | "videos" | "audio" | "ebook";
+        onChange: (v: "all" | "images" | "videos" | "audio" | "ebook") => void;
+    };
+
+    type ToolbarActions = {
         onLoad: () => void;
         onOpenPicker: () => void;
         onOpenWebtoon: () => void;
         onGoUp: (dir: string) => void;
-        mediaType: "all" | "images" | "videos" | "audio" | "ebook";
+    };
+
+    let {
+        folder,
+        stats,
+        sort,
+        filter,
+        actions,
+        isLoading = false,
+    }: {
+        folder: FolderState;
+        stats: StatsState;
+        sort: SortState;
+        filter: FilterState;
+        actions: ToolbarActions;
+        isLoading?: boolean;
     } = $props();
 
-    // ── Logic giữ nguyên ─────────────────────────────────────────────
+    const folderPath = $derived(folder?.path ?? "");
+    const isFolderSelected = $derived(folder?.isFolderSelected ?? false);
+    const isGrouped = $derived(folder?.isGrouped ?? false);
+    const loadedImages = $derived(folder?.items ?? []);
+    
+    const totalItems = $derived(stats?.items ?? 0);
+    const totalImages = $derived(stats?.images ?? 0);
+    const totalVideos = $derived(stats?.videos ?? 0);
+    const totalAudio = $derived(stats?.audio ?? 0);
+    const totalEbook = $derived(stats?.ebook ?? 0);
+    
+    const currentSort = $derived(sort?.current ?? "date_desc");
+    const mediaType = $derived(filter?.type ?? "all");
+
     const parentPath = $derived.by(() => {
         if (!folderPath) return null;
         const normalized = folderPath.replace(/\\/g, "/").replace(/\/+$/, "");
@@ -62,13 +88,12 @@
     });
 
     function handleKeydown(e: KeyboardEvent) {
-        if (e.key === "Enter") onLoad();
+        if (e.key === "Enter") actions.onLoad();
         if (e.key === "Escape") (e.target as HTMLElement)?.blur();
     }
 
     const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
 
-    // ── Popup state ───────────────────────────────────────────────────
     let menuOpen = $state(false);
     let menuRef = $state<HTMLElement | null>(null);
 
@@ -88,7 +113,6 @@
             document.removeEventListener("mousedown", handleOutsideClick);
     });
 
-    // ── Media options ─────────────────────────────────────────────────
     const mediaOptions: {
         value: typeof mediaType;
         label: string;
@@ -110,13 +134,13 @@
     ] as const;
 
     function selectMedia(v: typeof mediaType) {
-        mediaType = v;
-        onLoad();
+        filter.onChange(v);
+        actions.onLoad();
     }
 
-    function selectSort(v: string) {
-        currentSort = v;
-        onLoad();
+    function selectSort(v: typeof sortOptions[number]["value"]) {
+        sort.onChange(v);
+        actions.onLoad();
     }
 </script>
 
@@ -134,7 +158,7 @@
             class="hidden sm:flex items-center justify-center w-10 h-10 shrink-0
                    rounded-full text-sm font-medium
                    hover:preset-tonal-surface transition-colors"
-            onclick={onOpenPicker}
+            onclick={actions.onOpenPicker}
             onmousedown={(e) => e.preventDefault()}
             title="Select folder"
         >
@@ -145,7 +169,7 @@
             class="flex items-center justify-center w-10 h-10 shrink-0
                    rounded-full hover:preset-tonal-surface transition-colors
                    disabled:opacity-30"
-            onclick={() => parentPath && onGoUp(parentPath)}
+            onclick={() => parentPath && actions.onGoUp(parentPath)}
             disabled={!parentPath || isLoading}
             onmousedown={(e) => e.preventDefault()}
             title="Up one level"
@@ -167,10 +191,11 @@
                    text-sm font-medium tracking-tight truncate
                    placeholder:opacity-40 placeholder:font-normal
                    text-surface-700-200"
-            bind:value={folderPath}
+            value={folderPath}
+            oninput={(e) => folder.onPathChange?.((e.target as HTMLInputElement).value)}
             onkeydown={handleKeydown}
             placeholder="Tap to browse…"
-            onclick={() => isMobile && onOpenPicker()}
+            onclick={() => isMobile && actions.onOpenPicker()}
             readonly={isMobile}
         />
     </div>
@@ -185,7 +210,7 @@
             class="flex items-center justify-center w-10 h-10 shrink-0
                    rounded-full hover:preset-tonal-surface transition-colors
                    disabled:opacity-30"
-            onclick={onLoad}
+            onclick={actions.onLoad}
             disabled={isLoading}
             onmousedown={(e) => e.preventDefault()}
             title="Refresh"
@@ -202,7 +227,7 @@
             class="flex items-center justify-center w-10 h-10 shrink-0
                    rounded-full hover:preset-tonal-surface transition-colors
                    disabled:opacity-30"
-            onclick={onOpenWebtoon}
+            onclick={actions.onOpenWebtoon}
             title="Webtoon / Cover view"
         >
             <Layers size={20} />
@@ -255,7 +280,6 @@
                         title="{opt.label} ({opt.count})"
                     >
                         <opt.icon size={16} />
-                        <!-- <span class="leading-none">{opt.label}</span> -->
                         <span class="text-[10px]">{opt.count}</span>
                     </button>
                 {/each}
