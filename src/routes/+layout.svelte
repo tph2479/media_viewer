@@ -7,91 +7,144 @@
         FolderTree,
         HardDriveDownload,
         SettingsIcon,
-        SunMoon,
+        Sun,
+        Moon,
     } from "lucide-svelte";
     import { Navigation, Portal, Tooltip } from "@skeletonlabs/skeleton-svelte";
     import type { Snippet } from "svelte";
-    import { fade } from "svelte/transition";
+    import { fade, scale } from "svelte/transition";
 
     const { children }: { children: Snippet } = $props();
 
+    // --- LOGIC DARK MODE ---
+    let isDark = $state(false);
+
+    $effect(() => {
+        const mode = localStorage.getItem("mode") || "light";
+        isDark = mode === "dark";
+        document.documentElement.setAttribute("data-mode", mode);
+    });
+
+    const toggleMode = () => {
+        isDark = !isDark;
+        const mode = isDark ? "dark" : "light";
+        document.documentElement.setAttribute("data-mode", mode);
+        localStorage.setItem("mode", mode);
+    };
+
+    // --- CẤU HÌNH LINKS ---
     const links = [
         { label: "Home", href: "/", icon: HouseIcon },
         { label: "Gallery", href: "/gallery", icon: BookIcon },
-        { label: "File Browser", href: "/browser", icon: FolderTree },
+        { label: "Browser", href: "/browser", icon: FolderTree },
         { label: "Import", href: "/import", icon: HardDriveDownload },
+        { label: "Settings", href: "/settings", icon: SettingsIcon },
     ];
 
-    const bottom_links = [
-        { label: "Setting", href: "/settings", icon: SettingsIcon },
-    ];
-
+    // --- RESPONSIVE & PORTAL ---
     let isMobile = $state(false);
+    let desktopTarget: HTMLElement | undefined = $state();
+    let mobileTarget: HTMLElement | undefined = $state();
 
     $effect(() => {
         const mediaQuery = window.matchMedia("(max-width: 768px)");
         isMobile = mediaQuery.matches;
-        const handler = (e: MediaQueryListEvent) => {
-            isMobile = e.matches;
-        };
+        const handler = (e: MediaQueryListEvent) => (isMobile = e.matches);
         mediaQuery.addEventListener("change", handler);
         return () => mediaQuery.removeEventListener("change", handler);
     });
 
-    // SimpleBar removed - using CSS solution
-
     const isActive = (href: string) => {
         const currentPath = $page.url.pathname;
-        if (href === "/") return currentPath === "/";
-        return currentPath.startsWith(href);
+        return href === "/"
+            ? currentPath === "/"
+            : currentPath.startsWith(href);
     };
 </script>
 
-{#snippet NavItem({
-    label,
-    href,
-    icon: Icon,
-}: {
-    label: string;
-    href: string;
-    icon: any;
-})}
-    {@const active = isActive(href)}
+<svelte:head>
+    <script>
+        const savedMode = localStorage.getItem("mode") || "light";
+        document.documentElement.setAttribute("data-mode", savedMode);
+    </script>
+</svelte:head>
 
-    <Tooltip openDelay={0} closeDelay={0} positioning={{ placement: "right" }}>
-        <Tooltip.Trigger class="w-full">
+{#snippet ThemeIconToggle()}
+    <button
+        onclick={toggleMode}
+        class="flex flex-col items-center justify-center transition-all duration-300 hover:text-primary-500 active:scale-95
+               {isMobile ? 'flex-1 py-2' : 'w-full py-6'}"
+        aria-label="Toggle Theme"
+    >
+        <div class="relative size-6 flex items-center justify-center">
+            {#if isDark}
+                <div
+                    class="absolute"
+                    in:scale={{ duration: 400, start: 0.7, delay: 100 }}
+                    out:fade={{ duration: 200 }}
+                >
+                    <div class="rotate-[-15deg]">
+                        <Moon class="size-5 fill-current text-blue-400" />
+                    </div>
+                </div>
+            {:else}
+                <div
+                    class="absolute"
+                    in:scale={{ duration: 400, start: 0.7, delay: 100 }}
+                    out:fade={{ duration: 200 }}
+                >
+                    <Sun
+                        class="size-5 fill-current text-amber-500 shadow-amber-500/50"
+                    />
+                </div>
+            {/if}
+        </div>
+
+        {#if isMobile}
+            <span class="text-[10px] mt-1 font-medium opacity-60 tracking-wide">
+                {isDark ? "Dark" : "Light"}
+            </span>
+        {/if}
+    </button>
+{/snippet}
+
+{#snippet NavItem({ label, href, icon: Icon }: any)}
+    {@const active = isActive(href)}
+    <Tooltip
+        openDelay={0}
+        closeDelay={0}
+        positioning={{ placement: isMobile ? "top" : "right" }}
+    >
+        <Tooltip.Trigger class={isMobile ? "flex-1" : "w-full"}>
             <Navigation.TriggerAnchor
                 {href}
-                class="flex justify-center py-3 transition-all duration-200 relative
-                       {active ? 'text-primary-500' : 'text-surface-700-200'}"
+                class="flex flex-col md:flex-row justify-center items-center py-3 transition-all relative"
             >
-                {#if active}
+                {#if active && !isMobile}
                     <div
-                        class="absolute left-0 top-1/4 bottom-1/4 w-1 bg-primary-500 rounded-r-full shadow-[0_0_10px_rgba(var(--color-primary-500)/0.5)]"
-                        transition:fade={{ duration: 200 }}
+                        class="absolute left-0 top-1/4 bottom-1/4 w-1 bg-primary-500 rounded-r-full"
+                        transition:fade
                     ></div>
                 {/if}
-
                 <Icon
                     class="size-5 {active ? 'stroke-[2.5px]' : 'stroke-[2px]'}"
                 />
+                {#if isMobile}
+                    <span class="text-[10px] mt-1 font-medium">{label}</span>
+                {/if}
             </Navigation.TriggerAnchor>
         </Tooltip.Trigger>
-
-        <Portal>
-            <Tooltip.Positioner class="z-50">
-                <Tooltip.Content
-                    class="preset-filled-surface-950-50 text-xs px-3 py-1.5 rounded-md shadow-xl"
-                >
-                    {label}
-                    <Tooltip.Arrow
-                        class="[--arrow-size:--spacing(2)] [--arrow-background:var(--color-surface-950-50)]"
+        {#if !isMobile}
+            <Portal>
+                <Tooltip.Positioner class="z-50">
+                    <Tooltip.Content
+                        class="preset-filled-surface-950-50 text-xs px-3 py-1.5 rounded-md shadow-xl"
                     >
-                        <Tooltip.ArrowTip />
-                    </Tooltip.Arrow>
-                </Tooltip.Content>
-            </Tooltip.Positioner>
-        </Portal>
+                        {label}
+                    </Tooltip.Content>
+                </Tooltip.Positioner>
+            </Portal>
+        {/if}
     </Tooltip>
 {/snippet}
 
@@ -101,70 +154,43 @@
     class:grid-cols-[auto_1fr]={!isMobile}
 >
     {#if !isMobile}
-        <Navigation
-            layout="rail"
-            class="w-16 border-r border-surface-500/20 p-1"
-        >
-            <Navigation.Header>
-                <Navigation.Trigger class="flex justify-center py-3">
-                    <SunMoon class="size-5" />
-                </Navigation.Trigger>
-            </Navigation.Header>
-
-            <Navigation.Content>
-                <Navigation.Menu>
-                    {#each links as link (link.label)}
-                        {@render NavItem(link)}
-                    {/each}
-                </Navigation.Menu>
-            </Navigation.Content>
-
-            <Navigation.Footer>
-                {#each bottom_links as link (link.label)}
-                    {@render NavItem(link)}
-                {/each}
-            </Navigation.Footer>
-        </Navigation>
+        <div bind:this={desktopTarget} class="w-16"></div>
     {/if}
 
-    <main class="h-full overflow-y-scroll">
+    <main class="h-full overflow-y-auto">
         {@render children()}
     </main>
 
     {#if isMobile}
-        <Navigation
-            layout="bar"
-            class="border-t border-surface-500/20 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]"
-        >
-            <Navigation.Menu class="grid grid-cols-4 gap-1">
-                {#each links as link (link.label)}
-                    {@const Icon = link.icon}
-                    {@const active = isActive(link.href)}
-
-                    <Navigation.TriggerAnchor
-                        href={link.href}
-                        class="flex flex-col items-center py-2 transition-all duration-200
-                               {active
-                            ? 'text-primary-500'
-                            : 'text-surface-700-200 opacity-60'}"
-                    >
-                        <div class="relative flex items-center justify-center">
-                            <Icon
-                                class="size-5 {active
-                                    ? 'stroke-[2.5px]'
-                                    : 'stroke-[2px]'}"
-                            />
-                        </div>
-                        <span
-                            class="text-[10px] mt-1 font-medium {active
-                                ? 'text-primary-500'
-                                : 'text-surface-700-200 opacity-80'}"
-                        >
-                            {link.label}
-                        </span>
-                    </Navigation.TriggerAnchor>
-                {/each}
-            </Navigation.Menu>
-        </Navigation>
+        <div bind:this={mobileTarget} class="w-full"></div>
     {/if}
 </div>
+
+<Portal target={isMobile ? mobileTarget : desktopTarget}>
+    <Navigation
+        layout={isMobile ? "bar" : "rail"}
+        class="h-full w-full flex {isMobile ? 'flex-row' : 'flex-col'}"
+    >
+        <!-- {#if !isMobile}
+            <Navigation.Header>
+                {@render ThemeIconToggle()}
+            </Navigation.Header>
+        {/if} -->
+
+        <Navigation.Content class="flex-1 {isMobile ? 'w-full' : ''}">
+            <Navigation.Menu
+                class={isMobile
+                    ? "flex w-full justify-around items-center"
+                    : "space-y-2"}
+            >
+                {#each links as link}
+                    {@render NavItem(link)}
+                {/each}
+
+                <!-- {#if isMobile}
+                    {@render ThemeIconToggle()}
+                {/if} -->
+            </Navigation.Menu>
+        </Navigation.Content>
+    </Navigation>
+</Portal>

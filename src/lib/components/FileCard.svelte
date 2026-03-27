@@ -88,27 +88,25 @@
 <div class="group flex flex-col">
     <button
         id="item-{img.path.replace(/[^a-zA-Z0-9]/g, '-')}"
-        class="relative aspect-square bg-base-300 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:ring-2 hover:ring-primary/50 transition-all duration-300 cursor-pointer border border-base-content/10 w-full"
-        class:ring-4={highlighted}
-        class:ring-blue-500={highlighted}
-        class:z-10={highlighted}
+        class="relative aspect-square bg-surface-500-900 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:ring-2 hover:ring-primary-500/50 transition-all duration-300 cursor-pointer border w-full"
         onclick={handleCardClick}
     >
         {#if img.isDir}
             <!-- Folder card -->
             <div
-                class="absolute inset-0 flex flex-col items-center justify-center bg-base-200/40 group-hover:bg-base-200/60 transition-colors"
-                style:background-color={highlighted ? 'rgba(59, 130, 246, 0.5)' : undefined}
+                class="absolute inset-0 flex flex-col items-center justify-center bg-surface-300-900 group-hover:bg-surface-200-800 transition-colors"
             >
                 <Folder
-                    class="w-1/2 h-1/2 text-base-content/40 transition-transform duration-300"
+                    class="w-1/2 h-1/2 text-surface-900-300 transition-transform duration-300"
                 />
             </div>
         {:else if isZipFile(img.name)}
             <!-- Zip Icon (No thumbnail per user request) -->
             <div
                 class="absolute inset-0 flex flex-col items-center justify-center bg-amber-500/10 group-hover:bg-amber-500/20 transition-colors"
-                style:background-color={highlighted ? 'rgba(59, 130, 246, 0.5)' : undefined}
+                style:background-color={highlighted
+                    ? "rgba(59, 130, 246, 0.5)"
+                    : undefined}
             >
                 <FileArchive
                     class="w-1/2 h-1/2 text-amber-600 transition-transform duration-300"
@@ -136,14 +134,18 @@
             <!-- Fallback Icon for CBZ (Hidden by default, shown on error) -->
             <div
                 class="hidden absolute inset-0 w-full h-full flex-col items-center justify-center bg-amber-500/10 transition-colors"
-                style:background-color={highlighted ? 'rgba(59, 130, 246, 0.5)' : undefined}
+                style:background-color={highlighted
+                    ? "rgba(59, 130, 246, 0.5)"
+                    : undefined}
             >
                 <FileArchive class="w-1/2 h-1/2 text-amber-500 opacity-50" />
             </div>
         {:else if isVideoFile(img.name)}
             <div
                 class="absolute inset-0"
-                style:background-color={highlighted ? 'rgba(59, 130, 246, 0.5)' : undefined}
+                style:background-color={highlighted
+                    ? "rgba(59, 130, 246, 0.5)"
+                    : undefined}
             >
                 <img
                     use:lazyThumbnail={`/api/media?path=${encodeURIComponent(img.path)}&thumbnail=true&v=${cacheVersion.value}`}
@@ -163,7 +165,9 @@
         {:else if img.isAudio}
             <div
                 class="absolute inset-0 flex flex-col items-center justify-center bg-primary/5 transition-colors group-hover:bg-primary/10"
-                style:background-color={highlighted ? 'rgba(59, 130, 246, 0.5)' : undefined}
+                style:background-color={highlighted
+                    ? "rgba(59, 130, 246, 0.5)"
+                    : undefined}
             >
                 <FileAudio
                     class="w-1/4 h-1/4 text-primary opacity-20 transition-all duration-500"
@@ -186,7 +190,9 @@
         {:else if isPdfFile(img.name) || img.isPdf}
             <div
                 class="absolute inset-0 flex flex-col items-center justify-center bg-red-500/5 transition-colors group-hover:bg-red-500/10"
-                style:background-color={highlighted ? 'rgba(59, 130, 246, 0.5)' : undefined}
+                style:background-color={highlighted
+                    ? "rgba(59, 130, 246, 0.5)"
+                    : undefined}
             >
                 <FileText
                     class="w-1/3 h-1/3 text-red-600 opacity-20 transition-all duration-500"
@@ -205,7 +211,9 @@
         {:else if isEpubFile(img.name) || img.isEpub}
             <div
                 class="absolute inset-0 flex flex-col items-center justify-center bg-emerald-500/5 transition-colors group-hover:bg-emerald-500/10"
-                style:background-color={highlighted ? 'rgba(59, 130, 246, 0.5)' : undefined}
+                style:background-color={highlighted
+                    ? "rgba(59, 130, 246, 0.5)"
+                    : undefined}
             >
                 <FileText
                     class="w-1/3 h-1/3 text-emerald-600 opacity-20 transition-all duration-500"
@@ -224,7 +232,9 @@
         {:else}
             <div
                 class="absolute inset-0"
-                style:background-color={highlighted ? 'rgba(59, 130, 246, 0.5)' : undefined}
+                style:background-color={highlighted
+                    ? "rgba(59, 130, 246, 0.5)"
+                    : undefined}
             >
                 <img
                     use:lazyThumbnail={`/api/media?path=${encodeURIComponent(img.path)}&thumbnail=true&v=${cacheVersion.value}`}
@@ -238,7 +248,7 @@
     </button>
     <div class="flex flex-col items-center mt-auto pt-1">
         <p
-            class="text-[10px] sm:text-[11px] font-bold truncate text-center px-1 text-base-content/60 group-hover:text-primary transition-colors duration-300 w-full cursor-help"
+            class="text-[10px] sm:text-[11px] font-bold truncate text-center px-1 text-surface-600-400 group-hover:text-primary transition-colors duration-300 w-full cursor-help"
             title={img.name}
             onmouseenter={handleMouseEnter}
             onmouseleave={handleMouseLeave}

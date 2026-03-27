@@ -30,8 +30,22 @@
     };
 
     type SortState = {
-        current: "date_desc" | "date_asc" | "name_asc" | "name_desc" | "size_asc" | "size_desc";
-        onChange: (v: "date_desc" | "date_asc" | "name_asc" | "name_desc" | "size_asc" | "size_desc") => void;
+        current:
+            | "date_desc"
+            | "date_asc"
+            | "name_asc"
+            | "name_desc"
+            | "size_asc"
+            | "size_desc";
+        onChange: (
+            v:
+                | "date_desc"
+                | "date_asc"
+                | "name_asc"
+                | "name_desc"
+                | "size_asc"
+                | "size_desc",
+        ) => void;
     };
 
     type FilterState = {
@@ -66,13 +80,13 @@
     const isFolderSelected = $derived(folder?.isFolderSelected ?? false);
     const isGrouped = $derived(folder?.isGrouped ?? false);
     const loadedImages = $derived(folder?.items ?? []);
-    
+
     const totalItems = $derived(stats?.items ?? 0);
     const totalImages = $derived(stats?.images ?? 0);
     const totalVideos = $derived(stats?.videos ?? 0);
     const totalAudio = $derived(stats?.audio ?? 0);
     const totalEbook = $derived(stats?.ebook ?? 0);
-    
+
     const currentSort = $derived(sort?.current ?? "date_desc");
     const mediaType = $derived(filter?.type ?? "all");
 
@@ -138,7 +152,7 @@
         actions.onLoad();
     }
 
-    function selectSort(v: typeof sortOptions[number]["value"]) {
+    function selectSort(v: (typeof sortOptions)[number]["value"]) {
         sort.onChange(v);
         actions.onLoad();
     }
@@ -180,7 +194,7 @@
 
     <!-- Input -->
     <div
-        class="flex items-center flex-1 min-w-0 h-10 max-w-[600px]
+        class="flex items-center flex-1 min-w-0 h-10 max-w-150
                bg-surface-100-900 dark:bg-surface-800
                border border-surface-200-800 shadow-lg rounded-full"
     >
@@ -192,7 +206,8 @@
                    placeholder:opacity-40 placeholder:font-normal
                    text-surface-700-200"
             value={folderPath}
-            oninput={(e) => folder.onPathChange?.((e.target as HTMLInputElement).value)}
+            oninput={(e) =>
+                folder.onPathChange?.((e.target as HTMLInputElement).value)}
             onkeydown={handleKeydown}
             placeholder="Tap to browse…"
             onclick={() => isMobile && actions.onOpenPicker()}

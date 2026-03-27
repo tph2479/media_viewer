@@ -1,7 +1,7 @@
 <script lang="ts">
-    import { type ImageFile } from '$lib/utils/utils';
+    import { type ImageFile } from "$lib/utils/utils";
     import { cacheVersion } from "$lib/stores/cache.svelte";
-    import { lazyThumbnail } from '$lib/utils/thumbnailLoader';
+    import { lazyThumbnail } from "$lib/utils/thumbnailLoader";
     import FileCard from "./FileCard.svelte";
 
     import {
@@ -54,7 +54,7 @@
             hasMore: false,
             pageSize: 60,
             total: 0,
-            onPageChange: () => {}
+            onPageChange: () => {},
         },
         coverMode = {
             enabled: false,
@@ -64,7 +64,7 @@
             hasMore: false,
             onFolderClick: () => {},
             onExit: () => {},
-            onPageChange: () => {}
+            onPageChange: () => {},
         },
         actions,
     }: {
@@ -78,8 +78,12 @@
         actions: GalleryActions;
     } = $props();
 
-    const totalPages = $derived(Math.ceil(pagination.total / pagination.pageSize));
-    const totalCoverPages = $derived(Math.ceil(coverMode.total / pagination.pageSize));
+    const totalPages = $derived(
+        Math.ceil(pagination.total / pagination.pageSize),
+    );
+    const totalCoverPages = $derived(
+        Math.ceil(coverMode.total / pagination.pageSize),
+    );
 </script>
 
 {#if coverMode.enabled && coverMode.folders.length > 0}
@@ -93,7 +97,7 @@
             Back
         </button>
         <h2
-            class="text-base font-black tracking-tight uppercase text-base-content/80"
+            class="text-base font-black tracking-tight uppercase text-surface-900-100/80"
         >
             Cover Folders
         </h2>
@@ -108,7 +112,7 @@
         {#each coverMode.folders as folder}
             <div class="group flex flex-col">
                 <button
-                    class="relative aspect-square bg-base-300 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:ring-2 hover:ring-teal-500/50 transition-all duration-300 cursor-pointer border-2 border-teal-500/20 hover:border-teal-500/40 w-full"
+                    class="relative aspect-square bg-surface-50-900 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:ring-2 hover:ring-primary-500/50 transition-all duration-300 cursor-pointer border-2 border-primary-500/20 hover:border-primary-500/40 w-full"
                     onclick={() => coverMode.onFolderClick(folder.path)}
                 >
                     <img
@@ -119,7 +123,7 @@
                     />
                     <div class="absolute top-2 left-2 z-20">
                         <div
-                            class="bg-teal-600/90 px-2 py-0.5 rounded shadow-lg group-hover:bg-teal-600 transition-colors flex items-center gap-1"
+                            class="bg-primary-500 px-2 py-0.5 rounded shadow-lg group-hover:bg-primary-600 transition-colors flex items-center gap-1"
                         >
                             <Folder
                                 size={12}
@@ -138,7 +142,7 @@
                 </button>
                 <div class="flex flex-col items-center mt-auto pt-1">
                     <p
-                        class="text-[10px] sm:text-[11px] font-bold truncate text-center px-1 text-base-content/60 group-hover:text-teal-500 transition-colors duration-300 w-full"
+                        class="text-[10px] sm:text-[11px] font-bold truncate text-center px-1 text-surface-600-400 group-hover:text-primary-500 transition-colors duration-300 w-full"
                         title={folder.name}
                     >
                         {folder.name}
@@ -198,21 +202,21 @@
             {#each Array.from({ length: 12 }) as _}
                 <div class="flex flex-col gap-2">
                     <div
-                        class="aspect-square bg-base-300 rounded-2xl w-full"
+                        class="aspect-square bg-surface-500-900 rounded-2xl w-full"
                     ></div>
                     <div
-                        class="h-3 bg-base-300 rounded-full w-2/3 mx-auto"
+                        class="h-3 bg-surface-500-900 rounded-full w-2/3 mx-auto"
                     ></div>
                 </div>
             {/each}
         </div>
     {:else}
         <div
-            class="flex-1 flex flex-col items-center justify-center opacity-60 bg-base-200/30 rounded-3xl border-2 border-dashed border-base-content/10 p-10 text-center min-h-[300px]"
+            class="flex-1 flex flex-col items-center justify-center opacity-60 bg-surface-500-500/30 p-10 text-center min-h-75"
         >
             <FolderOpen size={56} strokeWidth={1} class="mb-4 opacity-20" />
             <p
-                class="text-base font-black uppercase tracking-tight mb-2 text-base-content"
+                class="text-base font-black uppercase tracking-tight mb-2 text-surface-900-100"
             >
                 No files found
             </p>
@@ -250,14 +254,14 @@
         </div>
     {/if}
 {:else if isGrouped && groupedData}
-    <div class="flex flex-col gap-5 pb-6">
+    <div class="flex flex-col gap-3 p-10 pt-4 bg-surface-800-500">
         {#each ["folders", "images", "cbz", "pdf", "epub", "audio", "videos"] as groupKey}
             {#if groupedData[groupKey] && groupedData[groupKey].items.length > 0}
                 {@const groupInfo = groupedData[groupKey]}
                 <div class="flex flex-col gap-2">
                     <div class="flex items-center gap-2 ml-1">
                         <h2
-                            class="text-base font-black tracking-tight uppercase text-base-content/80"
+                            class="text-base font-black tracking-tight uppercase text-surface-900-100/80"
                         >
                             {groupKey}
                         </h2>
@@ -277,7 +281,8 @@
                                 actions={{
                                     openDir: actions.openDir,
                                     openCbz: actions.openCbz,
-                                    openModal: (idx) => actions.openModal(idx, groupInfo.items),
+                                    openModal: (idx) =>
+                                        actions.openModal(idx, groupInfo.items),
                                 }}
                             />
                         {/each}
@@ -296,7 +301,7 @@
                                     />
                                 </div>
                                 <span
-                                    class="mt-3 font-bold text-xs text-primary/80 uppercase tracking-widest"
+                                    class="mt-3 text-xs text-primary/80 uppercase tracking-widest"
                                     >View All</span
                                 >
                             </button>
@@ -306,9 +311,9 @@
             {/if}
         {/each}
     </div>
-    {:else}
+{:else}
     <div
-        class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3 sm:gap-4 pb-10"
+        class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3 sm:gap-4 p-10"
     >
         {#each items as _, i}
             <FileCard
@@ -326,43 +331,48 @@
 
     {#if totalPages > 1}
         <div
-            class="flex flex-wrap justify-center items-center gap-2 mt-2 mb-10 w-full"
+            class="flex flex-wrap justify-center items-center gap-2 mt-6 mb-10 w-full"
         >
             <button
-                onclick={() => pagination.onPageChange(pagination.currentPage - 1)}
-                class="btn btn-sm btn-outline btn-square shadow-sm"
+                type="button"
+                onclick={() =>
+                    pagination.onPageChange(pagination.currentPage - 1)}
+                class="btn-icon btn-icon-sm variant-soft hover:variant-filled-surface transition-colors"
                 disabled={pagination.currentPage === 0 || isLoading}
                 aria-label="Previous page"
-                onmousedown={(e) => e.preventDefault()}
             >
                 <ChevronLeft size={16} />
             </button>
 
-            <div class="flex items-center gap-1 font-mono text-sm">
+            <div class="flex items-center gap-2 font-mono text-sm">
                 {#each Array.from({ length: totalPages }) as _, i}
                     {#if i === 0 || i === totalPages - 1 || Math.abs(i - pagination.currentPage) <= 2}
                         <button
+                            type="button"
                             onclick={() => pagination.onPageChange(i)}
-                            class="btn btn-sm shadow-sm {pagination.currentPage === i
-                                ? 'btn-primary'
-                                : 'btn-ghost'}"
+                            class="btn btn-sm transition-all duration-300 font-bold
+                            {pagination.currentPage === i
+                                ? 'variant-filled-primary ring-1 ring-primary-500 ring-offset-surface-900 scale-110 z-10'
+                                : 'variant-soft-surface text-surface-50 border border-surface-50 hover:border-surface-200'}"
                             disabled={isLoading}
-                            onmousedown={(e) => e.preventDefault()}
                         >
                             {i + 1}
                         </button>
                     {:else if Math.abs(i - pagination.currentPage) === 3}
-                        <span class="opacity-50 px-1">...</span>
+                        <span class="px-1 text-surface-500 italic opacity-50"
+                            >...</span
+                        >
                     {/if}
                 {/each}
             </div>
 
             <button
-                onclick={() => pagination.onPageChange(pagination.currentPage + 1)}
-                class="btn btn-sm btn-outline btn-square shadow-sm"
+                type="button"
+                onclick={() =>
+                    pagination.onPageChange(pagination.currentPage + 1)}
+                class="btn-icon btn-icon-sm variant-soft hover:variant-filled-surface transition-colors"
                 disabled={!pagination.hasMore || isLoading}
                 aria-label="Next page"
-                onmousedown={(e) => e.preventDefault()}
             >
                 <ChevronRight size={16} />
             </button>

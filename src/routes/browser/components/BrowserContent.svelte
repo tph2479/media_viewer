@@ -39,21 +39,31 @@
     });
 
     $effect(() => {
-        const isAnyModalOpen = s.isImageModalOpen || s.isVideoModalOpen || s.isWebtoonMode || s.isAudioModalOpen || s.isPdfReaderOpen;
+        const isAnyModalOpen =
+            s.isImageModalOpen ||
+            s.isVideoModalOpen ||
+            s.isWebtoonMode ||
+            s.isAudioModalOpen ||
+            s.isPdfReaderOpen;
         if (wasModalOpen && !isAnyModalOpen && s.lastOpenedFile) {
             s.highlightedPath = s.lastOpenedFile;
             s.lastOpenedFile = null;
             setTimeout(() => {
-                const el = document.getElementById(`item-${s.highlightedPath?.replace(/[^a-zA-Z0-9]/g, "-")}`);
-                if (el) el.scrollIntoView({ behavior: "instant", block: "center" });
+                const el = document.getElementById(
+                    `item-${s.highlightedPath?.replace(/[^a-zA-Z0-9]/g, "-")}`,
+                );
+                if (el)
+                    el.scrollIntoView({ behavior: "instant", block: "center" });
             }, 0);
-            setTimeout(() => { s.highlightedPath = null; }, 2500);
+            setTimeout(() => {
+                s.highlightedPath = null;
+            }, 2500);
         }
         wasModalOpen = isAnyModalOpen;
     });
 </script>
 
-<div class="p-4 sm:p-6 flex-1 flex flex-col min-h-[calc(100vh-4rem)]">
+<div class="flex-1 flex flex-col">
     {#if s.errorMsg}
         <aside
             class="flex items-center gap-3 preset-filled-error-500 text-xs py-2 px-4 mb-6 rounded-xl w-full"

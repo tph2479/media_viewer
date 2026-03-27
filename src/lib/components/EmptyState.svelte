@@ -5,10 +5,7 @@
 </script>
 
 <div
-    class="flex-1 flex flex-col items-center justify-center
-           bg-surface-50-800 border border-surface-200-800
-           rounded-2xl p-8 shadow-inner
-           text-center animate-in fade-in zoom-in-95 duration-700 h-full"
+    class="flex-1 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-700 h-full"
 >
     <div class="relative mb-6">
         <FolderSearch
@@ -35,7 +32,7 @@
     </p>
 
     <button
-        class="btn variant-filled-primary rounded-container-token px-12 py-4 font-black uppercase tracking-widest shadow-xl shadow-primary-500/20 hover:variant-ghost-primary transition-all active:scale-95"
+        class="btn variant-filled-primary rounded-container-token px-12 py-4 font-black uppercase tracking-widest shadow-xl hover:variant-ghost-primary transition-all active:scale-95"
         onclick={onOpenPicker}
     >
         <span>Open Picker</span>

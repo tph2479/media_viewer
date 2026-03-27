@@ -16,7 +16,15 @@
         if (s.isPinned) s.showHeader = true;
     });
 
-    function setSort(v: "date_desc" | "date_asc" | "name_asc" | "name_desc" | "size_asc" | "size_desc") {
+    function setSort(
+        v:
+            | "date_desc"
+            | "date_asc"
+            | "name_asc"
+            | "name_desc"
+            | "size_asc"
+            | "size_desc",
+    ) {
         s.currentSort = v;
     }
 
@@ -41,10 +49,15 @@
                 const restoredScrollPos = s.savedCoverState.scrollPos;
                 s.savedCoverState = null;
                 s.folderPath = path;
-                
+
                 setTimeout(() => {
-                    const scrollContainer = document.querySelector(".drawer-content");
-                    if (scrollContainer) scrollContainer.scrollTo({ top: restoredScrollPos, behavior: "instant" });
+                    const scrollContainer =
+                        document.querySelector(".drawer-content");
+                    if (scrollContainer)
+                        scrollContainer.scrollTo({
+                            top: restoredScrollPos,
+                            behavior: "instant",
+                        });
                 }, 0);
                 return;
             }
@@ -53,11 +66,27 @@
     });
 </script>
 
-<header class="sticky top-0 z-100 bg-surface-100-900 px-0 py-0 shadow-md h-16 transition-transform duration-300 rounded-b-lg {s.showHeader ? 'translate-y-0' : '-translate-y-full'}">
+<header
+    class="sticky top-0 z-100 bg-surface-100-900 px-0 py-0 shadow-md h-16 transition-transform duration-300 {s.showHeader
+        ? 'translate-y-0'
+        : '-translate-y-full'}"
+>
     <div class="flex flex-row items-stretch min-h-full overflow-visible">
         <GalleryToolbar
-            folder={{ path: s.folderPath, isFolderSelected: s.isFolderSelected, isGrouped: s.isGrouped, items: s.loadedImages, onPathChange: (v) => s.folderPath = v }}
-            stats={{ items: s.isCoverMode ? s.coverFoldersTotal : s.totalMedia, images: s.isCoverMode ? 0 : s.totalImagesCount, videos: s.isCoverMode ? 0 : s.totalVideosCount, audio: s.isCoverMode ? 0 : s.totalAudioCount, ebook: s.isCoverMode ? 0 : s.totalEbookCount }}
+            folder={{
+                path: s.folderPath,
+                isFolderSelected: s.isFolderSelected,
+                isGrouped: s.isGrouped,
+                items: s.loadedImages,
+                onPathChange: (v) => (s.folderPath = v),
+            }}
+            stats={{
+                items: s.isCoverMode ? s.coverFoldersTotal : s.totalMedia,
+                images: s.isCoverMode ? 0 : s.totalImagesCount,
+                videos: s.isCoverMode ? 0 : s.totalVideosCount,
+                audio: s.isCoverMode ? 0 : s.totalAudioCount,
+                ebook: s.isCoverMode ? 0 : s.totalEbookCount,
+            }}
             sort={{ current: s.currentSort, onChange: setSort }}
             filter={{ type: s.mediaType, onChange: setFilter }}
             {actions}
