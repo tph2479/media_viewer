@@ -320,16 +320,24 @@
             class="flex-1 overflow-y-scroll p-2 bg-white dark:bg-surface-800 custom-scroll"
         >
             {#if isPickerLoading}
-                <div
-                    class="flex flex-col items-center justify-center h-full gap-3 py-10 text-gray-400"
-                >
-                    <div
-                        class="w-6 h-6 rounded-full border-2 border-primary-500 border-t-transparent animate-spin"
-                    ></div>
-                    <span class="text-xs font-medium tracking-widest uppercase"
-                        >Loading…</span
-                    >
-                </div>
+                <ul class="flex flex-col gap-0.5 mt-2">
+                    {#each [".", "..", "..."] as name, i}
+                        <li class="skeleton-stagger" style="animation-delay: {i * 150}ms">
+                            <div
+                                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl opacity-40 cursor-default"
+                            >
+                                <span class="text-primary-500 shrink-0">
+                                    <Folder class="h-4 w-4" />
+                                </span>
+                                <span
+                                    class="flex-1 truncate text-sm font-medium text-gray-700 dark:text-gray-200"
+                                >
+                                    {name}
+                                </span>
+                            </div>
+                        </li>
+                    {/each}
+                </ul>
             {:else if pickerError}
                 <div
                     class="m-3 p-4 rounded-xl flex items-start gap-3
@@ -404,15 +412,15 @@
         >
             <!-- Drive / root quick-nav chips -->
             <div
-                class="flex items-center gap-1.5 overflow-x-auto no-scrollbar max-w-[60%]"
+                class="flex items-center gap-2 overflow-x-auto no-scrollbar max-w-[60%] py-3 px-3"
             >
                 {#each availableDrives as drive}
                     {@const isActive = pickerCurrentPath.startsWith(drive.path)}
                     <button
-                        class="chip shrink-0 text-xs font-bold px-2.5 py-1 rounded-lg transition-all
+                        class="chip shrink-0 text-xs font-bold size-10 flex items-center justify-center rounded-lg transition-all duration-200
 							{isActive
-                            ? 'variant-filled-primary'
-                            : 'bg-white dark:bg-surface-600 hover:bg-gray-100 dark:hover:bg-surface-500 text-gray-700 dark:text-gray-200'}"
+                            ? 'variant-filled-primary ring-2 ring-inset ring-primary-500'
+                            : 'bg-gray-200 dark:bg-surface-600 hover:bg-gray-300 dark:hover:bg-surface-500 text-gray-700 dark:text-gray-200 active:scale-95'}"
                         disabled={isPickerLoading}
                         onclick={() => loadPickerData(drive.path)}
                         title={drive.path}
@@ -421,6 +429,21 @@
                     </button>
                 {/each}
             </div>
+            
+            {#if isDrivesLoading}
+                <div
+                    class="flex-1 flex items-center justify-center gap-1.5 px-2 text-primary-500/50"
+                >
+                    {#each [".", "..", "..."] as dot, i}
+                        <span
+                            class="skeleton-stagger text-xl font-black"
+                            style="animation-delay: {i * 150}ms"
+                        >
+                            {dot}
+                        </span>
+                    {/each}
+                </div>
+            {/if}
 
             <!-- Actions -->
             <div class="flex items-center gap-2">
@@ -462,5 +485,12 @@
     }
     .no-scrollbar::-webkit-scrollbar {
         display: none;
+    }
+    @keyframes skeleton-pulse {
+        0%, 100% { opacity: 0.3; transform: scale(0.99); }
+        50% { opacity: 0.7; transform: scale(1); }
+    }
+    .skeleton-stagger {
+        animation: skeleton-pulse 1.2s infinite ease-in-out;
     }
 </style>

@@ -12,6 +12,7 @@
         FolderOpen,
         ArrowRight,
     } from "lucide-svelte";
+    import Pagination from "./Pagination.svelte";
 
     type GroupInfo = { items: ImageFile[]; total: number };
     type GroupedData = Record<string, GroupInfo>;
@@ -88,12 +89,6 @@
         actions: GalleryActions;
     } = $props();
 
-    const totalPages = $derived(
-        Math.ceil(pagination.total / pagination.pageSize),
-    );
-    const totalCoverPages = $derived(
-        Math.ceil(coverMode.total / pagination.pageSize),
-    );
 </script>
 
 {#if coverMode.enabled && coverMode.folders.length > 0}
@@ -163,48 +158,13 @@
         {/each}
     </div>
 
-    {#if totalCoverPages > 1}
-        <div
-            class="flex flex-wrap justify-center items-center gap-2 mt-2 mb-10 w-full"
-        >
-            <button
-                onclick={() => coverMode.onPageChange(coverMode.page - 1)}
-                class="btn btn-sm btn-outline btn-square shadow-sm"
-                disabled={coverMode.page === 0 || isLoading}
-                aria-label="Previous page"
-                onmousedown={(e) => e.preventDefault()}
-            >
-                <ChevronLeft size={16} strokeWidth={1.5} />
-            </button>
-            <div class="flex items-center gap-1 font-mono text-sm">
-                {#each Array.from({ length: totalCoverPages }) as _, i}
-                    {#if i === 0 || i === totalCoverPages - 1 || Math.abs(i - coverMode.page) <= 2}
-                        <button
-                            onclick={() => coverMode.onPageChange(i)}
-                            class="btn btn-sm shadow-sm {coverMode.page === i
-                                ? 'btn-primary'
-                                : 'btn-ghost'}"
-                            disabled={isLoading}
-                            onmousedown={(e) => e.preventDefault()}
-                        >
-                            {i + 1}
-                        </button>
-                    {:else if Math.abs(i - coverMode.page) === 3}
-                        <span class="opacity-50 px-1">...</span>
-                    {/if}
-                {/each}
-            </div>
-            <button
-                onclick={() => coverMode.onPageChange(coverMode.page + 1)}
-                class="btn btn-sm btn-outline btn-square shadow-sm"
-                disabled={!coverMode.hasMore || isLoading}
-                aria-label="Next page"
-                onmousedown={(e) => e.preventDefault()}
-            >
-                <ChevronRight size={16} strokeWidth={1.5} />
-            </button>
-        </div>
-    {/if}
+    <Pagination
+        currentPage={coverMode.page}
+        total={coverMode.total}
+        pageSize={pagination.pageSize}
+        isLoading={isLoading}
+        onPageChange={coverMode.onPageChange}
+    />
 {:else if items.length === 0 && !isGrouped}
     {#if isLoading}
         <div
@@ -370,54 +330,12 @@
         {/each}
     </div>
 
-    {#if totalPages > 1}
-        <div
-            class="flex flex-wrap justify-center items-center gap-2 mt-6 mb-10 w-full"
-        >
-            <button
-                type="button"
-                onclick={() =>
-                    pagination.onPageChange(pagination.currentPage - 1)}
-                class="btn-icon btn-icon-sm variant-soft hover:variant-filled-surface transition-colors"
-                disabled={pagination.currentPage === 0 || isLoading}
-                aria-label="Previous page"
-            >
-                <ChevronLeft size={16} strokeWidth={1.5} />
-            </button>
-
-            <div class="flex items-center gap-2 font-mono text-sm">
-                {#each Array.from({ length: totalPages }) as _, i}
-                    {#if i === 0 || i === totalPages - 1 || Math.abs(i - pagination.currentPage) <= 2}
-                        <button
-                            type="button"
-                            onclick={() => pagination.onPageChange(i)}
-                            class="btn btn-sm transition-all duration-300 font-bold
-                            {pagination.currentPage === i
-                                ? 'variant-filled-primary ring-1 ring-primary-500 ring-offset-surface-50 dark:ring-offset-surface-900 scale-110 z-10'
-                                : 'variant-soft-surface text-surface-900 dark:text-surface-50 border border-surface-200 dark:border-surface-700 hover:border-surface-400 dark:hover:border-surface-500'}"
-                            disabled={isLoading}
-                        >
-                            {i + 1}
-                        </button>
-                    {:else if Math.abs(i - pagination.currentPage) === 3}
-                        <span class="px-1 text-surface-500 italic opacity-50"
-                            >...</span
-                        >
-                    {/if}
-                {/each}
-            </div>
-
-            <button
-                type="button"
-                onclick={() =>
-                    pagination.onPageChange(pagination.currentPage + 1)}
-                class="btn-icon btn-icon-sm variant-soft hover:variant-filled-surface transition-colors"
-                disabled={!pagination.hasMore || isLoading}
-                aria-label="Next page"
-            >
-                <ChevronRight size={16} strokeWidth={1.5} />
-            </button>
-        </div>
-    {/if}
+    <Pagination
+        currentPage={pagination.currentPage}
+        total={pagination.total}
+        pageSize={pagination.pageSize}
+        isLoading={isLoading}
+        onPageChange={pagination.onPageChange}
+    />
     </div>
 {/if}
