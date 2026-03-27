@@ -11,7 +11,7 @@
         const saved = localStorage.getItem("last-path");
         if (saved) s.folderPath = saved;
 
-        const savedHistory = sessionStorage.getItem("hello-folder-history");
+        const savedHistory = sessionStorage.getItem("folder-history");
         if (savedHistory) {
             try {
                 s.folderPageHistory = JSON.parse(savedHistory);
@@ -21,7 +21,7 @@
         }
 
         // Load drives ONCE on startup
-        await s.refreshDrives();
+        // await s.refreshDrives();
 
         // Auto load last folder if exists
         if (s.folderPath) {

@@ -71,18 +71,18 @@ interface ModalState {
 }
 
 interface UIState {
-    isLoading: boolean;
-    isDrivesLoading: boolean;
-    error: string;
-    isPinned: boolean;
-    showHeader: boolean;
-    exclusiveType: string | null;
-    groupScrollPosition: number;
-    lastOpenedFolder: string | null;
-    lastOpenedFile: string | null;
-    highlightedPath: string | null;
-    pendingFile: PendingFile;
-    noImagesPopup: { open: boolean; timer: any };
+  isLoading: boolean;
+  isDrivesLoading: boolean;
+  error: string;
+  isPinned: boolean;
+  showHeader: boolean;
+  exclusiveType: string | null;
+  groupScrollPosition: number;
+  lastOpenedFolder: string | null;
+  lastOpenedFile: string | null;
+  highlightedPath: string | null;
+  pendingFile: PendingFile;
+  noImagesPopup: { open: boolean; timer: any };
   availableDrives: any[];
 }
 
@@ -128,21 +128,21 @@ export function createBrowserStore() {
     folderPicker: { open: false },
   });
 
-    const ui: UIState = $state({
-        isLoading: false,
-        isDrivesLoading: false,
-        error: "",
-        isPinned: true,
-        showHeader: true,
-        exclusiveType: null,
-        groupScrollPosition: 0,
-        lastOpenedFolder: null,
-        lastOpenedFile: null,
-        highlightedPath: null,
-        pendingFile: null,
-        noImagesPopup: { open: false, timer: null },
-        availableDrives: []
-    });
+  const ui: UIState = $state({
+    isLoading: false,
+    isDrivesLoading: false,
+    error: "",
+    isPinned: true,
+    showHeader: true,
+    exclusiveType: null,
+    groupScrollPosition: 0,
+    lastOpenedFolder: null,
+    lastOpenedFile: null,
+    highlightedPath: null,
+    pendingFile: null,
+    noImagesPopup: { open: false, timer: null },
+    availableDrives: [],
+  });
 
   function normalizePath(p: string) {
     if (!p) return p;
@@ -245,7 +245,7 @@ export function createBrowserStore() {
 
       folder.pageHistory[targetPath] = pagination.currentPage;
       sessionStorage.setItem(
-        "hello-folder-history",
+        "folder-history",
         JSON.stringify(folder.pageHistory),
       );
 
@@ -512,6 +512,10 @@ export function createBrowserStore() {
     },
     get folderPageHistory() {
       return folder.pageHistory;
+    },
+
+    set folderPageHistory(v) {
+      folder.pageHistory = v;
     },
 
     get loadedImages() {
