@@ -5,6 +5,7 @@
     "": {
       "name": "media_viewer",
       "dependencies": {
+        "@napi-rs/canvas": "^0.1.97",
         "@skeletonlabs/skeleton": "^4.13.0",
         "@skeletonlabs/skeleton-svelte": "^4.13.0",
         "@types/yauzl": "^2.10.3",

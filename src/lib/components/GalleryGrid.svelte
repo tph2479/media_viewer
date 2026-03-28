@@ -45,7 +45,7 @@
     };
 
     let {
-        items = $bindable<ImageFile[]>([]),
+        items = [],
         isGrouped = false,
         groupedData = null,
         isLoading = false,
@@ -318,7 +318,7 @@
         >
             {#each items as _, i}
             <FileCard
-                bind:img={items[i]}
+                img={items[i]}
                 index={i}
                 highlighted={highlightedPath === items[i].path}
                 actions={{

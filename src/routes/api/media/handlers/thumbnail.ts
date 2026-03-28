@@ -8,7 +8,8 @@ import {
   ensureHeicConverted,
 } from "$lib/server/archiveUtils";
 import { globalTaskSemaphore } from "$lib/server/semaphore";
-import { isVideoFile, isAudioFile, isImageFile } from "$lib/fileUtils";
+import { isVideoFile, isAudioFile, isImageFile, isPdfFile } from "$lib/fileUtils";
+import { renderPdfFirstPage } from "$lib/server/pdf/pdfRenderer";
 
 const ongoingGenerations = new Map<string, Promise<boolean>>();
 
@@ -132,6 +133,23 @@ export async function generateThumbnail(
           });
           if (!res) return false;
         } catch (e) {
+          return false;
+        }
+      } else if (isPdfFile(ext)) {
+        try {
+          const res = await globalTaskSemaphore.run(async () => {
+            if (signal?.aborted) throw new Error("Aborted");
+            const buf = await renderPdfFirstPage(inputPath, 400);
+            await sharp(buf)
+                .rotate()
+                .resize(200, 200, { fit: "cover", fastShrinkOnLoad: true })
+                .webp({ quality: 65, effort: 0 })
+                .toFile(outputPath);
+            return true;
+          });
+          if (!res) return false;
+        } catch (e) {
+          console.error(`[PDF Render Error] ${inputPath}:`, e);
           return false;
         }
       } else {
