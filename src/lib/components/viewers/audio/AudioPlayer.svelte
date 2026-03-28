@@ -231,15 +231,10 @@
 
     <!-- Visualizer -->
     <div
-        class="absolute bottom-0 left-0 right-0 h-24 pointer-events-none z-0 flex justify-center opacity-40"
+        class="absolute bottom-0 left-0 right-0 h-56 pointer-events-none z-0 flex justify-center opacity-40"
     >
         <div class="w-full max-w-3xl h-full">
-            <canvas
-                bind:this={s.canvas}
-                width="900"
-                height="160"
-                class="w-full h-full"
-            ></canvas>
+            <canvas bind:this={s.canvas} class="w-full h-full"></canvas>
         </div>
     </div>
 
@@ -268,163 +263,169 @@
 
         <!-- Content Area -->
         <div
-            class="flex-1 flex flex-col md:flex-row items-center justify-center p-4 md:p-8 gap-6 md:gap-12 overflow-auto"
+            class="flex-1 flex flex-col items-center justify-center p-4 md:p-8 gap-3 md:gap-4 overflow-auto pb-56 md:pb-56"
         >
-            <!-- Cover Art -->
-            <div class="relative w-48 h-48 md:w-80 md:h-80 shrink-0">
-                <!-- Cover -->
+            <!-- Top block: [thumbnail] [title(bottom) + controls] -->
+            <div
+                class="flex flex-col md:flex-row items-center md:items-stretch gap-4 md:gap-10 w-full max-w-3xl"
+            >
+                <!-- Cover Art + Vinyl -->
                 <div
-                    class="absolute inset-0 rounded-2xl overflow-hidden shadow-2xl border border-surface-600/30 bg-surface-800"
+                    class="relative w-36 h-36 sm:w-44 sm:h-44 md:w-56 md:h-56 shrink-0 mx-auto md:mx-0"
                 >
-                    {#if !s.imgFailed}
-                        <img
-                            src={`/api/media?path=${encodeURIComponent(currentAudio?.path || "")}&thumbnail=true&v=${cacheVersion.value}`}
-                            alt={currentAudio?.name}
-                            class="w-full h-full object-cover"
-                            onerror={() => (s.imgFailed = true)}
-                        />
-                    {:else}
-                        <div
-                            class="w-full h-full flex items-center justify-center"
-                        >
-                            <Disc class="w-16 h-16 text-surface-600" />
-                        </div>
-                    {/if}
-                </div>
-
-                <!-- Vinyl Edge (static) -->
-                <div
-                    class="absolute -right-6 top-1/2 -translate-y-1/2 w-[85%] h-[85%] bg-surface-800 rounded-full border border-surface-600/20 shadow-2xl -z-10 opacity-60"
-                    style="background: radial-gradient(circle at center, #444444 0%, #262626 100%);"
-                >
+                    <!-- Cover -->
                     <div
-                        class="absolute inset-[37.5%] rounded-full bg-surface-800/80 border border-surface-600/20 flex items-center justify-center overflow-hidden"
+                        class="absolute inset-0 rounded-2xl overflow-hidden shadow-2xl border border-surface-600/30 bg-surface-800"
                     >
                         {#if !s.imgFailed}
                             <img
                                 src={`/api/media?path=${encodeURIComponent(currentAudio?.path || "")}&thumbnail=true&v=${cacheVersion.value}`}
-                                alt=""
-                                class="w-full h-full object-cover opacity-50"
+                                alt={currentAudio?.name}
+                                class="w-full h-full object-cover"
+                                onerror={() => (s.imgFailed = true)}
                             />
+                        {:else}
+                            <div
+                                class="w-full h-full flex items-center justify-center"
+                            >
+                                <Disc class="w-16 h-16 text-surface-600" />
+                            </div>
                         {/if}
+                    </div>
+
+                    <!-- Vinyl Edge (static) -->
+                    <div
+                        class="absolute -right-6 top-1/2 -translate-y-1/2 w-[85%] h-[85%] rounded-full border border-surface-600/20 shadow-2xl -z-10 opacity-60"
+                        style="background: radial-gradient(circle at center, #444444 0%, #262626 100%);"
+                    >
+                        <div
+                            class="absolute inset-[37.5%] rounded-full bg-surface-800/80 border border-surface-600/20 flex items-center justify-center overflow-hidden"
+                        >
+                            {#if !s.imgFailed}
+                                <img
+                                    src={`/api/media?path=${encodeURIComponent(currentAudio?.path || "")}&thumbnail=true&v=${cacheVersion.value}`}
+                                    alt=""
+                                    class="w-full h-full object-cover opacity-50"
+                                />
+                            {/if}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right panel: title (bottom-aligned) + controls -->
+                <div class="flex-1 flex flex-col min-w-0 w-full gap-3 md:gap-2">
+                    <!-- Title pushes to bottom on desktop via flex-1 -->
+                    <div
+                        class="flex-1 flex flex-col justify-end text-center md:text-left"
+                    >
+                        <h1
+                            class="text-lg sm:text-xl md:text-2xl font-bold text-surface-100 leading-tight audio-title-scroll"
+                            title={currentAudio?.name}
+                        >
+                            {currentAudio?.name.replace(/\.[^/.]+$/, "")}
+                        </h1>
+                        <p class="text-surface-400 text-sm mt-1">
+                            {formatBytes(currentAudio?.size || 0)} &bull; {selectedImageIndex +
+                                1} of {totalImages}
+                        </p>
+                    </div>
+                    <!-- Controls row -->
+                    <div
+                        class="flex items-center justify-center md:justify-end gap-2 sm:gap-3 shrink-0"
+                    >
+                        <button
+                            class="btn btn-circle btn-ghost text-surface-400 hover:text-surface-100"
+                            onclick={prev}
+                            disabled={selectedImageIndex === 0 &&
+                                currentPage === 0}
+                        >
+                            <SkipBack class="w-5 h-5" />
+                        </button>
+
+                        <!-- Play/Pause -->
+                        <button
+                            class="btn btn-circle btn-primary w-14 h-14"
+                            onclick={ctrl.togglePlay}
+                        >
+                            {#if s.isPlaying}
+                                <Pause class="w-5 h-5" />
+                            {:else}
+                                <Play class="w-5 h-5" />
+                            {/if}
+                        </button>
+
+                        <!-- Next -->
+                        <button
+                            class="btn btn-circle btn-ghost text-surface-400 hover:text-surface-100"
+                            onclick={next}
+                            disabled={selectedImageIndex ===
+                                loadedImages.length - 1 && !hasMore}
+                        >
+                            <SkipForward class="w-5 h-5" />
+                        </button>
+
+                        <!-- Loop -->
+                        <button
+                            class="btn btn-circle btn-ghost {s.isLooping
+                                ? 'text-primary-400'
+                                : 'text-surface-500'}"
+                            onclick={() => (s.isLooping = !s.isLooping)}
+                            title="Loop"
+                        >
+                            <Repeat class="w-5 h-5" />
+                        </button>
+
+                        <!-- Auto Next -->
+                        <button
+                            class="btn btn-circle btn-ghost {s.isAutoNext
+                                ? 'text-primary-400'
+                                : 'text-surface-500'}"
+                            onclick={() => (s.isAutoNext = !s.isAutoNext)}
+                            title="Auto Next"
+                        >
+                            <ArrowBigRightDash class="w-5 h-5" />
+                        </button>
+
+                        <!-- Volume -->
+                        <button
+                            class="btn btn-circle btn-ghost text-surface-400 hover:text-surface-100"
+                            onclick={ctrl.toggleMute}
+                        >
+                            {#if s.isMuted || s.volume === 0}
+                                <VolumeX class="w-5 h-5" />
+                            {:else}
+                                <Volume2 class="w-5 h-5" />
+                            {/if}
+                        </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Right Panel: Info + Progress + Controls -->
-            <div
-                class="flex-1 flex flex-col items-center md:items-start gap-6 w-full max-w-md"
-            >
-                <!-- Track Info -->
-                <div class="text-center md:text-left space-y-2 w-full">
-                    <h1
-                        class="text-xl md:text-2xl font-bold text-surface-100 leading-tight truncate"
-                        title={currentAudio?.name}
-                    >
-                        {currentAudio?.name.replace(/\.[^/.]+$/, "")}
-                    </h1>
-                    <p class="text-surface-400 text-sm">
-                        {formatBytes(currentAudio?.size || 0)} • {selectedImageIndex +
-                            1} of {totalImages}
-                    </p>
-                </div>
-
-                <!-- Progress Bar -->
-                <div class="w-full space-y-2">
-                    <div
-                        class="relative h-2 bg-surface-700 rounded-full overflow-hidden"
-                    >
-                        <div
-                            class="absolute top-0 left-0 h-full bg-primary-500 transition-all"
-                            style="width: {progress}%"
-                        ></div>
-                        <input
-                            type="range"
-                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                            min="0"
-                            max={s.duration || 100}
-                            value={s.currentTime}
-                            oninput={handleSeek}
-                        />
-                    </div>
-                    <div
-                        class="flex justify-between text-xs font-mono text-surface-500"
-                    >
-                        <span class="text-surface-300"
-                            >{formatTime(s.currentTime)}</span
-                        >
-                        <span>{formatTime(s.duration)}</span>
-                    </div>
-                </div>
-
-                <!-- Controls -->
+            <!-- Seek bar — full width of parent -->
+            <div class="w-full max-w-3xl space-y-1">
                 <div
-                    class="flex flex-wrap items-center justify-center md:justify-start gap-3 md:gap-4"
+                    class="relative h-2 bg-surface-700 rounded-full overflow-hidden"
                 >
-                    <!-- Previous -->
-                    <button
-                        class="btn btn-circle btn-ghost text-surface-400 hover:text-surface-100"
-                        onclick={prev}
-                        disabled={selectedImageIndex === 0 && currentPage === 0}
+                    <div
+                        class="absolute top-0 left-0 h-full bg-surface-100 transition-all"
+                        style="width: {progress}%"
+                    ></div>
+                    <input
+                        type="range"
+                        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        min="0"
+                        max={s.duration || 100}
+                        value={s.currentTime}
+                        oninput={handleSeek}
+                    />
+                </div>
+                <div
+                    class="flex justify-between text-xs font-mono text-surface-500"
+                >
+                    <span class="text-surface-300"
+                        >{formatTime(s.currentTime)}</span
                     >
-                        <SkipBack class="w-5 h-5" />
-                    </button>
-
-                    <!-- Play/Pause -->
-                    <button
-                        class="btn btn-circle btn-primary w-14 h-14"
-                        onclick={ctrl.togglePlay}
-                    >
-                        {#if s.isPlaying}
-                            <Pause class="w-5 h-5" />
-                        {:else}
-                            <Play class="w-5 h-5" />
-                        {/if}
-                    </button>
-
-                    <!-- Next -->
-                    <button
-                        class="btn btn-circle btn-ghost text-surface-400 hover:text-surface-100"
-                        onclick={next}
-                        disabled={selectedImageIndex ===
-                            loadedImages.length - 1 && !hasMore}
-                    >
-                        <SkipForward class="w-5 h-5" />
-                    </button>
-
-                    <!-- Loop -->
-                    <button
-                        class="btn btn-circle btn-ghost {s.isLooping
-                            ? 'text-primary-400'
-                            : 'text-surface-500'}"
-                        onclick={() => (s.isLooping = !s.isLooping)}
-                        title="Loop"
-                    >
-                        <Repeat class="w-5 h-5" />
-                    </button>
-
-                    <!-- Auto Next -->
-                    <button
-                        class="btn btn-circle btn-ghost {s.isAutoNext
-                            ? 'text-primary-400'
-                            : 'text-surface-500'}"
-                        onclick={() => (s.isAutoNext = !s.isAutoNext)}
-                        title="Auto Next"
-                    >
-                        <ArrowBigRightDash class="w-5 h-5" />
-                    </button>
-
-                    <!-- Volume -->
-                    <button
-                        class="btn btn-circle btn-ghost text-surface-400 hover:text-surface-100"
-                        onclick={ctrl.toggleMute}
-                    >
-                        {#if s.isMuted || s.volume === 0}
-                            <VolumeX class="w-5 h-5" />
-                        {:else}
-                            <Volume2 class="w-5 h-5" />
-                        {/if}
-                    </button>
+                    <span>{formatTime(s.duration)}</span>
                 </div>
             </div>
 
@@ -468,5 +469,17 @@
 
     img {
         backface-visibility: hidden;
+    }
+
+    /* Scrollable title - hidden scrollbar */
+    :global(.audio-title-scroll) {
+        overflow-x: auto;
+        white-space: nowrap;
+        /* Hide scrollbar for all browsers */
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE/Edge */
+    }
+    :global(.audio-title-scroll::-webkit-scrollbar) {
+        display: none; /* Chrome/Safari/Opera */
     }
 </style>

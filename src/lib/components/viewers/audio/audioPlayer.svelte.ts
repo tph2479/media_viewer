@@ -55,6 +55,8 @@ export function createAudioController() {
       cancelAnimationFrame(s.animationFrame);
       s.animationFrame = 0;
     }
+    // Draw one final idle frame so dody stays visible but frozen
+    drawGraph();
   }
 
   function toggleMute() {
@@ -93,6 +95,8 @@ export function createAudioController() {
   }
 
   function updateExcitement() {
+    // If animationFrame was cancelled (set to 0), stop the loop
+    if (!s.animationFrame) return;
     if (!s.analyser || !s.dataArray || !s.canvas) return;
 
     const now = performance.now();
@@ -178,8 +182,20 @@ export function createAudioController() {
     const ctx = s.canvas.getContext("2d", { alpha: true });
     if (!ctx) return;
 
-    const w = s.canvas.width;
-    const h = s.canvas.height;
+    // Sync canvas pixel dimensions to its CSS display size to avoid stretch distortion
+    const rect = s.canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    const displayW = Math.round(rect.width * dpr);
+    const displayH = Math.round(rect.height * dpr);
+    if (s.canvas.width !== displayW || s.canvas.height !== displayH) {
+      s.canvas.width = displayW;
+      s.canvas.height = displayH;
+      ctx.scale(dpr, dpr);
+    }
+
+    // Work in CSS pixels so coordinates match layout
+    const w = rect.width;
+    const h = rect.height;
     const step = 1.0;
     const hue = (performance.now() / 20) % 360;
 
@@ -188,19 +204,27 @@ export function createAudioController() {
     ctx.lineCap = "round";
 
     const currentCount = s.history.length;
-    const headX = w - 20;
+    // Dody sits near-right with ~18% breathing room on the right
+    const headX = w * 0.82;
 
     ctx.beginPath();
     const opacity = 0.25;
     ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
     ctx.lineWidth = 1.0;
 
+    // Safe drawing zone: leave padding at top (15%) and bottom (20%)
+    const padTop = h * 0.15;
+    const padBottom = h * 0.20;
+    const drawH = h - padTop - padBottom;
+    // Map [0,1] energy → [bottom of zone, top of zone]
+    const toY = (val: number) => h - padBottom - val * drawH;
+
     for (let i = 0; i < currentCount - 1; i++) {
       const x = headX - (currentCount - 1 - i) * step;
-      const y = h - s.history[i].y * h * 0.5 - 40;
+      const y = toY(s.history[i].y * 0.9);
 
       const nextX = headX - (currentCount - 1 - (i + 1)) * step;
-      const nextY = h - s.history[i + 1].y * h * 0.5 - 40;
+      const nextY = toY(s.history[i + 1].y * 0.9);
 
       // Tính điểm điều khiển nằm giữa hai điểm dữ liệu
       const xc = (x + nextX) / 2;
@@ -218,7 +242,7 @@ export function createAudioController() {
     if (currentCount === 0) return;
 
     const lastPt = s.history[currentCount - 1];
-    const headY = h - lastPt.y * h * 0.5 - 40;
+    const headY = toY(lastPt.y * 0.9);
 
     ctx.beginPath();
     ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
