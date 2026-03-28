@@ -218,7 +218,17 @@
     /** Drive/root label shown in the quick-nav chips.
      *  Windows → "C", "D" …   Linux → "/", "~", "/media/…" last segment */
     function driveLabel(drive: DirectoryEntry): string {
-        if (isWindows) return drive.name.replace(/[\\:]/g, "");
+        if (isWindows) {
+            // "C:\ (Volume)" or "C:\"
+            const letterMatch = drive.path.match(/^([A-Za-z]:)/);
+            const letter = letterMatch ? letterMatch[1] : drive.name.slice(0, 2);
+            
+            // Extract volume name from inside parentheses if present
+            const volumeMatch = drive.name.match(/\((.*)\)/);
+            const volume = volumeMatch ? volumeMatch[1] : "";
+            
+            return volume ? `${letter} (${volume})` : letter;
+        }
         // For Linux show last path segment or "/" for root
         const segs = drive.path.replace(/\/$/, "").split("/").filter(Boolean);
         return segs.length === 0 ? "/" : segs[segs.length - 1];
@@ -428,12 +438,12 @@
         >
             <!-- Drive / root quick-nav chips -->
             <div
-                class="flex items-center gap-2 overflow-x-auto no-scrollbar max-w-[60%] py-3 px-3"
+                class="flex items-center gap-2 overflow-x-auto no-scrollbar max-w-[75%] py-3 px-3"
             >
                 {#each availableDrives as drive}
                     {@const isActive = pickerCurrentPath.startsWith(drive.path)}
                     <button
-                        class="chip shrink-0 text-xs font-bold size-10 flex items-center justify-center rounded-lg transition-all duration-200
+                        class="chip shrink-0 text-[10px] font-bold h-9 px-3 min-w-[36px] flex items-center justify-center rounded-lg transition-all duration-200 whitespace-nowrap
 							{isActive
                             ? 'variant-filled-primary ring-2 ring-inset ring-primary-500'
                             : 'bg-gray-200 dark:bg-surface-600 hover:bg-gray-300 dark:hover:bg-surface-500 text-gray-700 dark:text-gray-200 active:scale-95'}"
