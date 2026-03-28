@@ -9,27 +9,49 @@ const execAsync = promisify(exec);
 
 async function getWindowsDrives(): Promise<{ name: string; path: string }[]> {
 	try {
-		const { stdout } = await execAsync('powershell "Get-PSDrive -PSProvider FileSystem | Select-Object -ExpandProperty Name"');
-		const lines = stdout.split('\n');
-		const drives = [];
+		const { stdout } = await execAsync('wmic logicaldisk get name, volumename /format:list');
+		const lines = stdout.split(/\r?\n/);
+		const drives: { name: string; path: string }[] = [];
+		let currentDrive: { name?: string; volumeName?: string } = {};
+
 		for (const line of lines) {
-			const d = line.trim();
-			if (d && d.length === 1) {
-				drives.push({ name: `${d}:\\`, path: `${d}:\\` });
-			} else if (d && d.length === 2 && d[1] === ':') {
-				drives.push({ name: `${d}\\`, path: `${d}\\` });
+			const trimmed = line.trim();
+			if (!trimmed) {
+				if (currentDrive.name) {
+					const name = currentDrive.name;
+					const volumeName = currentDrive.volumeName || '';
+					const displayName = volumeName ? `${name}\\ (${volumeName})` : `${name}\\`;
+					drives.push({ name: displayName, path: `${name}\\` });
+					currentDrive = {};
+				}
+				continue;
+			}
+
+			if (trimmed.startsWith('Name=')) {
+				currentDrive.name = trimmed.substring(5).trim();
+			} else if (trimmed.startsWith('VolumeName=')) {
+				currentDrive.volumeName = trimmed.substring(11).trim();
 			}
 		}
+
+		if (currentDrive.name) {
+			const name = currentDrive.name;
+			const volumeName = currentDrive.volumeName || '';
+			const displayName = volumeName ? `${name}\\ (${volumeName})` : `${name}\\`;
+			drives.push({ name: displayName, path: `${name}\\` });
+		}
+
 		return drives.sort((a, b) => {
-			if (a.name.startsWith('C:')) return -1;
-			if (b.name.startsWith('C:')) return 1;
-			return a.name.localeCompare(b.name);
+			if (a.path.startsWith('C:')) return -1;
+			if (b.path.startsWith('C:')) return 1;
+			return a.path.localeCompare(b.path);
 		});
 	} catch (e) {
-		console.error('Failed to get Windows drives via PowerShell:', e);
+		console.error('Failed to get Windows drives via WMIC:', e);
 		return [{ name: 'C:\\', path: 'C:\\' }];
 	}
 }
+
 
 export async function handleNavigation(folderParam: string | null) {
     if (!folderParam || folderParam.trim() === '' || folderParam === 'This PC' || folderParam === 'This PC (Ổ đĩa hệ thống)') {
