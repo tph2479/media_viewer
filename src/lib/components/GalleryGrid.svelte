@@ -88,7 +88,6 @@
         };
         actions: GalleryActions;
     } = $props();
-
 </script>
 
 {#if coverMode.enabled && coverMode.folders.length > 0}
@@ -162,7 +161,7 @@
         currentPage={coverMode.page}
         total={coverMode.total}
         pageSize={pagination.pageSize}
-        isLoading={isLoading}
+        {isLoading}
         onPageChange={coverMode.onPageChange}
     />
 {:else if items.length === 0 && !isGrouped}
@@ -226,7 +225,7 @@
     {/if}
 {:else if isGrouped && groupedData}
     <div class="flex flex-col gap-8 p-4">
-    {#each ["folders", "images", "cbz", "pdf", "epub", "audio", "videos"] as groupKey}
+        {#each ["folders", "images", "cbz", "pdf", "epub", "audio", "videos"] as groupKey}
             {#if groupedData[groupKey] && groupedData[groupKey].items.length > 0}
                 {@const groupInfo = groupedData[groupKey]}
                 <div class="flex flex-col gap-2">
@@ -284,7 +283,7 @@
         {/each}
     </div>
 {:else}
-    <div class="flex flex-col p-10">
+    <div class="flex flex-col p-4">
         {#if exclusiveMode.type}
             <div class="flex items-center gap-3 mb-6 p-1">
                 <button
@@ -317,25 +316,25 @@
             class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3 sm:gap-4"
         >
             {#each items as _, i}
-            <FileCard
-                img={items[i]}
-                index={i}
-                highlighted={highlightedPath === items[i].path}
-                actions={{
-                    openDir: actions.openDir,
-                    openCbz: actions.openCbz,
-                    openModal: actions.openModal,
-                }}
-            />
-        {/each}
-    </div>
+                <FileCard
+                    img={items[i]}
+                    index={i}
+                    highlighted={highlightedPath === items[i].path}
+                    actions={{
+                        openDir: actions.openDir,
+                        openCbz: actions.openCbz,
+                        openModal: actions.openModal,
+                    }}
+                />
+            {/each}
+        </div>
 
-    <Pagination
-        currentPage={pagination.currentPage}
-        total={pagination.total}
-        pageSize={pagination.pageSize}
-        isLoading={isLoading}
-        onPageChange={pagination.onPageChange}
-    />
+        <Pagination
+            currentPage={pagination.currentPage}
+            total={pagination.total}
+            pageSize={pagination.pageSize}
+            {isLoading}
+            onPageChange={pagination.onPageChange}
+        />
     </div>
 {/if}
