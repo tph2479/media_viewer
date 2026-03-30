@@ -1,5 +1,6 @@
 export class Semaphore {
-	private tasks: (() => void)[] = [];
+	// Store the resolve function and the abort handler together
+	private queue: { resolve: () => void; onAbort?: () => void }[] = [];
 	private activeCount = 0;
 	private concurrency: number;
 
@@ -10,14 +11,14 @@ export class Semaphore {
 	async acquire(signal?: AbortSignal): Promise<void> {
 		if (this.activeCount < this.concurrency) {
 			this.activeCount++;
-			return Promise.resolve();
+			return;
 		}
 
 		return new Promise<void>((resolve, reject) => {
 			const onAbort = () => {
-				const idx = this.tasks.indexOf(resolve);
+				const idx = this.queue.findIndex(item => item.resolve === resolve);
 				if (idx > -1) {
-					this.tasks.splice(idx, 1);
+					this.queue.splice(idx, 1);
 					reject(new Error('Aborted'));
 				}
 			};
@@ -27,19 +28,24 @@ export class Semaphore {
 				signal.addEventListener('abort', onAbort, { once: true });
 			}
 
-			this.tasks.push(() => {
-				if (signal) signal.removeEventListener('abort', onAbort);
-				resolve();
+			this.queue.push({
+				resolve: () => {
+					if (signal) signal.removeEventListener('abort', onAbort);
+					resolve();
+				},
+				onAbort // Keep track of this to remove it manually if needed
 			});
 		});
 	}
 
 	release(): void {
-		this.activeCount--;
-		if (this.tasks.length > 0) {
-			this.activeCount++;
-			const next = this.tasks.shift();
-			if (next) next();
+		if (this.queue.length > 0) {
+			const next = this.queue.shift();
+			// We don't decrement/increment activeCount here 
+			// because we are handing the "slot" directly to the next task.
+			if (next) next.resolve();
+		} else {
+			this.activeCount--;
 		}
 	}
 

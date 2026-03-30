@@ -148,7 +148,8 @@ export async function generateThumbnail(
             return true;
           });
           if (!res) return false;
-        } catch (e) {
+        } catch (e: any) {
+          if (e instanceof Error && e.message === "Aborted") return false;
           console.error(`[PDF Render Error] ${inputPath}:`, e);
           return false;
         }

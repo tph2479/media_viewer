@@ -146,9 +146,11 @@ export function createPdfController(initialPdfPath: string) {
     s.isLoading = true;
     s.errorMsg = "";
     try {
-      const loadingTask = s.pdfjs.getDocument(
-        `/api/ebook?path=${encodeURIComponent(s.pdfPath)}`,
-      );
+      const loadingTask = s.pdfjs.getDocument({
+        url: `/api/ebook?path=${encodeURIComponent(s.pdfPath)}`,
+        disableAutoFetch: true,
+        disableStream: false,
+      });
       s.pdfDoc = await loadingTask.promise;
       s.numPages = s.pdfDoc.numPages;
 
@@ -162,6 +164,7 @@ export function createPdfController(initialPdfPath: string) {
             const page = await s.pdfDoc.getPage(i + 1);
             const viewport = page.getViewport({ scale: 1.0 });
             s.aspectRatios[i] = viewport.height / viewport.width;
+            if (typeof page.cleanup === "function") page.cleanup();
             // Yield to main thread every 10 pages
             if (i % 10 === 0) await tick();
           } catch (e) {
@@ -295,6 +298,8 @@ export function createPdfController(initialPdfPath: string) {
             snippet: `... ${before}<mark class="bg-yellow-400/50 text-white rounded">${text.substring(match.index, match.index + s.searchQuery.length)}</mark>${after} ...`,
           });
         }
+        
+        if (typeof page.cleanup === "function") page.cleanup();
         if (i % 5 === 0) await tick();
       }
 
@@ -473,7 +478,7 @@ export function createPdfController(initialPdfPath: string) {
     }
   }
 
-  function clearCanvas(canvas: HTMLCanvasElement, index: number) {
+  async function clearCanvas(canvas: HTMLCanvasElement, index: number) {
     if (renderTasks.has(index)) {
       try {
         renderTasks.get(index).cancel();
@@ -483,7 +488,19 @@ export function createPdfController(initialPdfPath: string) {
     const context = canvas.getContext("2d");
     if (context) {
       context.clearRect(0, 0, canvas.width, canvas.height);
+      canvas.width = 0;
+      canvas.height = 0;
     }
+    
+    // Free PDF.js page resources immediately
+    try {
+      if (s.pdfDoc) {
+        const page = await s.pdfDoc.getPage(index + 1);
+        if (page && typeof page.cleanup === "function") {
+          page.cleanup();
+        }
+      }
+    } catch (e) {}
   }
 
   function applySearchHighlights(
@@ -558,6 +575,11 @@ export function createPdfController(initialPdfPath: string) {
       clearTimeout(s.hideTimerId);
       s.hideTimerId = null;
     }
+    try {
+      if (s.pdfDoc && typeof s.pdfDoc.cleanup === "function") {
+        s.pdfDoc.cleanup();
+      }
+    } catch (e) {}
     if (s.pdfDoc) s.pdfDoc.destroy();
     for (const task of renderTasks.values()) {
       try {

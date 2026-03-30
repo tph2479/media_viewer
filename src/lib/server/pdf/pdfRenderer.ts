@@ -15,54 +15,72 @@ if (!(globalThis as any).DOMMatrix) {
   };
 }
 
-// @ts-ignore
-import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { spawn } from 'node:child_process';
 
 /**
  * Renders the first page of a PDF to a PNG buffer with optimal scaling.
+ * Runs in a separate isolated process to avoid main-thread memory spikes and V8 GC pauses
+ * when dealing with extremely large PDF files.
  * 
  * @param pdfPath Absolute path to the PDF file.
  * @param targetWidth The desired width for the thumbnail (to optimize CPU/Memory usage).
  */
 export async function renderPdfFirstPage(pdfPath: string, targetWidth: number = 400): Promise<Buffer> {
-  let data = new Uint8Array(await fs.readFile(pdfPath));
-  let pdf: any = null;
+  const code = `
+    import fs from 'node:fs/promises';
+    import { createCanvas } from '@napi-rs/canvas';
+    import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 
-  try {
-    const loadingTask = pdfjs.getDocument({
-      data,
-      verbosity: 0,
-      stopAtErrors: false,
-    });
+    if (!globalThis.DOMMatrix) {
+      globalThis.DOMMatrix = class DOMMatrix {
+        constructor(arg) {
+          if (Array.isArray(arg)) {
+            this.a = arg[0]; this.b = arg[1]; this.c = arg[2]; this.d = arg[3]; this.e = arg[4]; this.f = arg[5];
+          } else {
+            this.a = 1; this.b = 0; this.c = 0; this.d = 1; this.e = 0; this.f = 0;
+          }
+        }
+      };
+    }
 
-    pdf = await loadingTask.promise;
-    const page = await pdf.getPage(1);
-    
-    // 1. Calculate the optimal scale
-    // We want to render at roughly targetWidth to save memory/CPU
-    const unscaledViewport = page.getViewport({ scale: 1.0 });
-    const scale = targetWidth / unscaledViewport.width;
-    const viewport = page.getViewport({ scale });
-    
-    // 2. High-speed Canvas rendering
-    const canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
-    const context = canvas.getContext('2d');
-
-    await (page.render({
-      canvasContext: context as any,
-      viewport: viewport,
-    } as any)).promise;
-
-    // 3. Fast PNG encoding (lowest compression is faster for local IPC)
-    const buffer = await canvas.encode('png');
-    
-    return buffer;
-  } finally {
-    // 4. Reliable Memory Cleanup
-    if (pdf) {
+    async function run() {
+      const data = new Uint8Array(await fs.readFile(process.env.PDF_PATH));
+      const loadingTask = pdfjs.getDocument({ data, verbosity: 0, stopAtErrors: false });
+      const pdf = await loadingTask.promise;
+      const page = await pdf.getPage(1);
+      
+      const unscaledViewport = page.getViewport({ scale: 1.0 });
+      const scale = parseFloat(process.env.TARGET_WIDTH) / unscaledViewport.width;
+      const viewport = page.getViewport({ scale });
+      
+      const canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
+      const context = canvas.getContext('2d');
+      await page.render({ canvasContext: context, viewport }).promise;
+      
+      const buffer = await canvas.encode('png');
+      process.stdout.write(buffer);
       await pdf.destroy();
     }
-    // Help GC with large buffer
-    (data as any) = null;
-  }
+    
+    run().catch(e => { console.error(e); process.exit(1); });
+  `;
+
+  return new Promise((resolve, reject) => {
+    // @ts-ignore
+    const runner = globalThis.Bun ? 'bun' : 'node';
+    const proc = spawn(runner, ['-e', code], {
+      env: { ...process.env, PDF_PATH: pdfPath, TARGET_WIDTH: targetWidth.toString() },
+      stdio: ['ignore', 'pipe', 'inherit'] // stderr inherits to log PDF JS errors to console if any
+    });
+    
+    const chunks: Buffer[] = [];
+    proc.stdout.on('data', (d: Buffer) => chunks.push(d));
+    proc.on('close', (code: number) => {
+      if (code === 0 && chunks.length > 0) {
+        resolve(Buffer.concat(chunks));
+      } else {
+        reject(new Error(`PDF render process failed with code ${code}`));
+      }
+    });
+  });
 }
