@@ -10,7 +10,8 @@
     import FolderPicker from "$lib/components/FolderPicker.svelte";
     import { browserStore } from "$lib/stores/browser.svelte";
     import { toaster } from "$lib/stores/toaster";
-    import { untrack } from "svelte";
+    import { untrack, tick } from "svelte";
+    import { goto } from "$app/navigation";
 
     let { data, form } = $props();
 
@@ -38,8 +39,9 @@
     }
 
     // --- Save Logic ---
-    function handleSave() {
+    async function handleSave() {
         if (pickerPath !== lastSavedPath) {
+            await tick();
             formEl.requestSubmit();
         }
     }
@@ -97,6 +99,11 @@
             if (form.path) {
                 pickerPath = form.path;
                 lastSavedPath = form.path;
+                
+                // Jump to browser with the new path immediately
+                setTimeout(() => {
+                    goto(`/browser?path=${encodeURIComponent(form.path)}`);
+                }, 1000); // 1s delay to show the success toast
             }
         }
         if (form?.error) {
@@ -134,13 +141,12 @@
                         }}
                         class="w-full mt-4"
                     >
-                        <input type="hidden" name="path" bind:value={pickerPath} />
-
                         <!-- Path Input with Browse Button on Right -->
                         <div
                             class="card preset-outlined flex items-center w-full overflow-hidden shadow-none"
                         >
                             <input
+                                name="path"
                                 type="text"
                                 class="flex-1 h-10 px-4 bg-transparent border-none outline-none ring-0
                                        text-sm font-medium tracking-tight truncate
@@ -225,8 +231,9 @@
         availableDrives={browserStore.ui.availableDrives}
         isDrivesLoading={browserStore.ui.isDrivesLoading}
         onRefreshDrives={browserStore.actions.refreshDrives}
-        onSelect={(path) => {
+        onSelect={async (path) => {
             pickerPath = path;
+            await tick();
             formEl.requestSubmit();
         }}
     />

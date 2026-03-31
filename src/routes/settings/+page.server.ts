@@ -11,14 +11,20 @@ export const load: PageServerLoad = async () => {
 
 export const actions: Actions = {
     savePath: async ({ request }) => {
-        const data = await request.formData();
-        const path = data.get('path');
+        const formData = await request.formData();
+        const path = formData.get('path');
         
         if (typeof path !== 'string' || !path.trim()) {
-            return fail(400, { error: 'Path cannot be empty', path });
+            return fail(400, { error: 'Path cannot be empty', path: String(path || '') });
         }
         
-        await setDefaultAppPath(path.trim());
-        return { success: true, path: path.trim() };
+        try {
+            const trimmedPath = path.trim();
+            await setDefaultAppPath(trimmedPath);
+            return { success: true, path: trimmedPath };
+        } catch (error) {
+            console.error('Failed to save path:', error);
+            return fail(500, { error: 'Internal server error while saving path', path: path.trim() });
+        }
     }
 };

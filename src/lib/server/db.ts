@@ -31,8 +31,13 @@ export async function getDefaultAppPath(): Promise<string | null> {
  * @param appPath Đường dẫn mới
  */
 export async function setDefaultAppPath(appPath: string): Promise<void> {
-    // Lưu vào trong nhánh settings > defaultAppPath
-    await db.push("/settings/defaultAppPath", appPath);
+    try {
+        // Lưu vào trong nhánh settings > defaultAppPath
+        await db.push("/settings/defaultAppPath", appPath);
+    } catch (error) {
+        console.error("Critical: Failed to save to JsonDB at /settings/defaultAppPath", error);
+        throw error;
+    }
 }
 
 // Bạn sẽ có thể dùng nó sau này cho metadata của truyện như:

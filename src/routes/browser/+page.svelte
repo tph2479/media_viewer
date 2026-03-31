@@ -10,7 +10,9 @@
     // ── Lifecycle ─────────────────────────────────────────────────────────────
     onMount(async () => {
         const saved = localStorage.getItem("last-path");
-        if (saved) {
+        if (data.urlPath) {
+            s.folder.path = data.urlPath;
+        } else if (saved) {
             s.folder.path = saved;
         } else if (data.defaultPath) {
             s.folder.path = data.defaultPath;
