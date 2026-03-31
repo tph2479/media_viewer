@@ -18,9 +18,11 @@
         path: string;
         isFolderSelected: boolean;
         isGrouped: boolean;
+        exclusiveType?: string | null;
         items: ImageFile[];
         onPathChange?: (v: string) => void;
     };
+
 
     type StatsState = {
         items: number;
@@ -77,10 +79,16 @@
         isLoading?: boolean;
     } = $props();
 
-    const folderPath = $derived(folder?.path ?? "");
+    const folderPathRaw = $derived(folder?.path ?? "");
     const isFolderSelected = $derived(folder?.isFolderSelected ?? false);
     const isGrouped = $derived(folder?.isGrouped ?? false);
+    const exclusiveType = $derived(folder?.exclusiveType ?? null);
     const loadedImages = $derived(folder?.items ?? []);
+
+    const folderPath = $derived.by(() => {
+        if (!folderPathRaw) return "";
+        return exclusiveType ? `${folderPathRaw} > ${exclusiveType}` : folderPathRaw;
+    });
 
     const totalItems = $derived(stats?.items ?? 0);
     const totalImages = $derived(stats?.images ?? 0);
@@ -92,8 +100,9 @@
     const mediaType = $derived(filter?.type ?? "all");
 
     const parentPath = $derived.by(() => {
-        if (!folderPath) return null;
-        const normalized = folderPath.replace(/\\/g, "/").replace(/\/+$/, "");
+        if (exclusiveType) return "EXIT_EXCLUSIVE"; // Special value to signal exit
+        if (!folderPathRaw) return null;
+        const normalized = folderPathRaw.replace(/\\/g, "/").replace(/\/+$/, "");
         if (/^[a-zA-Z]:$/.test(normalized)) return null;
         const parts = normalized.split("/");
         if (parts.length <= 1) return null;
@@ -203,18 +212,18 @@
 
     <!-- Input -->
     <div
-        class="flex items-center flex-1 min-w-0 h-10
+        class="flex items-center flex-1 min-w-0 h-10 px-1
                bg-surface-100 dark:bg-surface-800
                border border-surface-200 dark:border-surface-800 shadow-lg rounded-full"
     >
         <input
             type="text"
-            class="w-full h-full px-4 bg-transparent
+            class="flex-1 h-full px-3 bg-transparent
                    border-none outline-none ring-0
                    text-sm font-medium tracking-tight truncate
                    placeholder:opacity-40 placeholder:font-normal
                    text-surface-700 dark:text-surface-200"
-            value={folderPath}
+            value={folderPathRaw}
             oninput={(e) =>
                 folder.onPathChange?.((e.target as HTMLInputElement).value)}
             onkeydown={handleKeydown}
@@ -222,7 +231,20 @@
             onclick={() => isMobile && actions.onOpenPicker()}
             readonly={isMobile}
         />
+        
+        {#if exclusiveType}
+            <div class="flex items-center gap-1.5 shrink-0 ml-1 mr-2 animate-in fade-in slide-in-from-right-2 duration-300">
+                <div class="w-px h-4 bg-surface-500/20 mx-0.5"></div>
+                <div class="flex items-center gap-1.5 py-1 px-2.5 rounded-full bg-primary-500/10 border border-primary-500/20 text-primary-500 shadow-sm">
+                    <LayoutGrid size={12} strokeWidth={2.5} class="opacity-70" />
+                    <span class="text-[10px] font-black uppercase tracking-wider whitespace-nowrap">
+                        {exclusiveType}
+                    </span>
+                </div>
+            </div>
+        {/if}
     </div>
+
 
     <!-- Right buttons -->
     <div

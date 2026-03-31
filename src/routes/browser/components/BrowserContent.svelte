@@ -1,45 +1,9 @@
 <script lang="ts">
     import EmptyState from "$lib/components/EmptyState.svelte";
-    import GalleryGrid from "$lib/components/GalleryGrid.svelte";
+    import BrowserView from "$lib/components/browser/BrowserView.svelte";
     import { browserStore as s } from "$lib/stores/browser.svelte";
 
     let wasModalOpen = $state(false);
-
-    const gridProps = $derived({
-        items: s.content.items,
-        isGrouped: s.content.isGrouped,
-        groupedData: s.content.groupedData,
-        isLoading: s.ui.isLoading,
-        highlightedPath: s.ui.highlightedPath,
-        pagination: {
-            currentPage: s.pagination.currentPage,
-            hasMore: s.pagination.hasMore,
-            pageSize: s.pagination.pageSize,
-            total: s.content.totals.media,
-            onPageChange: s.actions.loadNextPage,
-        },
-        coverMode: {
-            enabled: s.cover.enabled,
-            folders: s.cover.folders,
-            total: s.cover.total,
-            page: s.cover.page,
-            hasMore: s.cover.hasMore,
-            onFolderClick: s.actions.handleCoverFolderClick,
-            onExit: s.actions.exitCoverMode,
-            onPageChange: s.actions.loadCoverPage,
-        },
-        exclusiveMode: {
-            type: s.ui.exclusiveType,
-            total: s.content.totals.media,
-            onExit: s.actions.handleExitGroupView,
-        },
-        actions: {
-            openModal: s.actions.openModal,
-            openCbz: s.actions.openCbzInWebtoon,
-            openDir: s.actions.openDir,
-            openGroup: s.actions.handleOpenGroup,
-        },
-    });
 
     $effect(() => {
         const isAnyModalOpen =
@@ -78,10 +42,7 @@
     {#if !s.folder.isSelected && !s.ui.isLoading && !s.ui.error}
         <EmptyState onOpenPicker={() => (s.modal.folderPicker.open = true)} />
     {:else if s.folder.isSelected}
-        <GalleryGrid
-            bind:items={s.content.items}
-            bind:groupedData={s.content.groupedData}
-            {...gridProps}
-        />
+        <BrowserView highlightedPath={s.ui.highlightedPath} />
     {/if}
 </div>
+

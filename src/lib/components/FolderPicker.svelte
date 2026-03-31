@@ -187,14 +187,14 @@
             folderPath = dir.path;
             isFolderPickerOpen = false;
             onOpenFile?.(dir.path, "cbz");
-            onSelect();
+            onSelect(dir.path);
             return;
         }
         if (dir.isMedia) {
             folderPath = pickerCurrentPath;
             isFolderPickerOpen = false;
             onOpenFile?.(dir.path, "media");
-            onSelect();
+            onSelect(pickerCurrentPath);
             return;
         }
     }

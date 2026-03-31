@@ -27,6 +27,10 @@
         onOpenPicker: () => (s.modal.folderPicker.open = true),
         onOpenWebtoon: s.actions.handleOpenWebtoon,
         onGoUp: async (path: string) => {
+            if (path === "EXIT_EXCLUSIVE") {
+                s.actions.handleExitGroupView();
+                return;
+            }
             if (s.cover.savedState && s.cover.savedState.path === path) {
                 s.cover.enabled = true;
                 s.cover.folders = s.cover.savedState.folders;
@@ -62,9 +66,11 @@
                 path: s.folder.path,
                 isFolderSelected: s.folder.isSelected,
                 isGrouped: s.content.isGrouped,
+                exclusiveType: s.ui.exclusiveType,
                 items: s.content.items,
                 onPathChange: (v) => (s.folder.path = v),
             }}
+
             stats={{
                 items: s.cover.enabled ? s.cover.total : s.content.totals.media,
                 images: s.cover.enabled ? 0 : s.content.totals.images,
