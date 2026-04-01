@@ -199,6 +199,13 @@ export function createImageModalState(props: {
 		if (wheelPanResetTimer) clearTimeout(wheelPanResetTimer);
 	}
 
+	function hideControlsImmediately() {
+		if (infoHideTimerId) { clearTimeout(infoHideTimerId); infoHideTimerId = null; }
+		if (rightHideTimerId) { clearTimeout(rightHideTimerId); rightHideTimerId = null; }
+		infoVisible = false;
+		rightControlsVisible = false;
+	}
+
 	function fitImageToViewport(forcedRotation?: number) {
 		if (renderedWidth > 0 && naturalWidth > 0 && naturalHeight > 0) {
 			const rot = forcedRotation !== undefined ? forcedRotation : rotation;
@@ -247,7 +254,7 @@ export function createImageModalState(props: {
 		const isInTopStrip = ratioY < 0.15; 
 		const isInRightStrip = ratioX > 0.85;
 
-		if (hasSelection || isInTopStrip) {
+		if (hasSelection || isInTopStrip || isHoveringInfo) {
 			infoVisible = true;
 			if (infoHideTimerId) clearTimeout(infoHideTimerId);
 			if (!isHoveringInfo) {
@@ -268,7 +275,7 @@ export function createImageModalState(props: {
 			}
 		}
 		
-		if (isInRightStrip) {
+		if (isInRightStrip || isHoveringRightControls) {
 			rightControlsVisible = true;
 			if (rightHideTimerId) clearTimeout(rightHideTimerId);
 			if (!isHoveringRightControls) {
@@ -602,6 +609,7 @@ export function createImageModalState(props: {
         prevImage,
         handleKeyDown,
         cleanup,
-		resetAll
+		resetAll,
+		hideControlsImmediately
     };
 }

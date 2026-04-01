@@ -53,7 +53,7 @@ export function createVideoController() {
 		const ratioY = e.clientY / height;
 		const isInTopZone = ratioY < 0.2;
 
-		if (isInTopZone) {
+		if (isInTopZone || s.isHoveringControls) {
 			s.controlsVisible = true;
 			if (s.hideTimerId) clearTimeout(s.hideTimerId);
 			if (!s.isHoveringControls) {
@@ -79,12 +79,18 @@ export function createVideoController() {
 		releaseVideo();
 	}
 
+	function hideControlsImmediately() {
+		if (s.hideTimerId) { clearTimeout(s.hideTimerId); s.hideTimerId = null; }
+		s.controlsVisible = false;
+	}
+
 	return {
 		state: s,
 		rotateVideo,
 		releaseVideo,
 		toggleFullscreen,
 		handleMouseMoveVisibility,
-		destroy
+		destroy,
+		hideControlsImmediately
 	};
 }

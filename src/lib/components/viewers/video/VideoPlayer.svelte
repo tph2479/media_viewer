@@ -244,6 +244,7 @@
 		tabindex="-1"
 		class="fixed inset-0 z-[300] bg-black/80 flex flex-col h-full w-full overflow-hidden outline-none animate-in fade-in duration-300"
 		onmousemove={ctrl.handleMouseMoveVisibility}
+		onmouseleave={() => ctrl.hideControlsImmediately()}
 	>
 		<!-- Main View Area -->
 		<div
@@ -355,12 +356,13 @@
 								</div>
 
 								<!-- Right: Close Button -->
-								<div class="pointer-events-auto shrink-0 ml-2">
+								<div class="shrink-0 ml-2">
 									<button
 										aria-label="Close"
-										class="btn rounded-xl w-12 h-12 min-h-0 p-0 bg-zinc-900/95 hover:bg-zinc-800 text-white border border-white/10 shadow-2xl transition-all hover:scale-110"
+										class="w-12 h-12 flex items-center justify-center rounded-xl bg-zinc-900/95 hover:bg-zinc-800 text-white border border-white/10 shadow-2xl transition-all hover:scale-110 cursor-pointer"
+										tabindex="-1"
 										onclick={(e) => { e.stopPropagation(); closeModal(); }}
-										onmousedown={(e) => e.preventDefault()}
+										onpointerdown={(e) => e.preventDefault()}
 									>
 										<X class="h-6 w-6" />
 									</button>
@@ -386,27 +388,27 @@
 										<div class="flex items-center gap-2 mr-[-6px]">
 											<!-- Navigation -->
 											<div class="flex items-center border-r border-white/20 pr-2 gap-1">
-												<button aria-label="Previous" class="btn btn-ghost w-8 h-8 min-h-0 p-0 text-white transition-colors hover:bg-white/10" onclick={(e) => { e.stopPropagation(); prevVideo(); }} disabled={selectedImageIndex === 0 && currentPage === 0} onmousedown={(e) => e.preventDefault()}>
+												<button aria-label="Previous" class="w-8 h-8 flex items-center justify-center bg-transparent text-white transition-colors hover:bg-white/10 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed" tabindex="-1" onclick={(e) => { e.stopPropagation(); prevVideo(); }} disabled={selectedImageIndex === 0 && currentPage === 0} onpointerdown={(e) => e.preventDefault()}>
 													<ChevronLeft class="h-5 w-5" />
 												</button>
-												<button aria-label="Next" class="btn btn-ghost w-8 h-8 min-h-0 p-0 text-white transition-colors hover:bg-white/10" onclick={(e) => { e.stopPropagation(); nextVideo(); }} disabled={selectedImageIndex >= loadedImages.length - 1 && !hasMore} onmousedown={(e) => e.preventDefault()}>
+												<button aria-label="Next" class="w-8 h-8 flex items-center justify-center bg-transparent text-white transition-colors hover:bg-white/10 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed" tabindex="-1" onclick={(e) => { e.stopPropagation(); nextVideo(); }} disabled={selectedImageIndex >= loadedImages.length - 1 && !hasMore} onpointerdown={(e) => e.preventDefault()}>
 													<ChevronRight class="h-5 w-5" />
 												</button>
 											</div>
 
 											<!-- Playback -->
 											<div class="flex items-center border-r border-white/20 pr-2 gap-1">
-												<button aria-label={s.isVideoPaused ? "Play" : "Pause"} class="btn btn-ghost w-8 h-8 min-h-0 p-0 text-white transition-colors hover:bg-white/10" onclick={(e) => { e.stopPropagation(); s.isVideoPaused = !s.isVideoPaused; }} onmousedown={(e) => e.preventDefault()}>
+												<button aria-label={s.isVideoPaused ? "Play" : "Pause"} class="w-8 h-8 flex items-center justify-center bg-transparent text-white transition-colors hover:bg-white/10 cursor-pointer" tabindex="-1" onclick={(e) => { e.stopPropagation(); s.isVideoPaused = !s.isVideoPaused; }} onpointerdown={(e) => e.preventDefault()}>
 													{#if s.isVideoPaused}
 														<Play class="h-5 w-5" />
 													{:else}
 														<Pause class="h-5 w-5" />
 													{/if}
 												</button>
-												<button aria-label="Toggle Loop" class="btn btn-ghost w-8 h-8 min-h-0 p-0 transition-all hover:bg-white/10 {s.isVideoLoop ? 'text-primary' : 'text-white'}" onclick={(e) => { e.stopPropagation(); s.isVideoLoop = !s.isVideoLoop; }} onmousedown={(e) => e.preventDefault()}>
+												<button aria-label="Toggle Loop" class="w-8 h-8 flex items-center justify-center bg-transparent transition-all hover:bg-white/10 cursor-pointer {s.isVideoLoop ? 'text-primary-500' : 'text-white'}" tabindex="-1" onclick={(e) => { e.stopPropagation(); s.isVideoLoop = !s.isVideoLoop; }} onpointerdown={(e) => e.preventDefault()}>
 													<Repeat class="h-5 w-5" />
 												</button>
-												<button aria-label="Toggle Mute" class="btn btn-ghost w-8 h-8 min-h-0 p-0 transition-all hover:bg-white/10 {s.isVideoMuted ? 'text-red-500' : 'text-white'}" onclick={(e) => { e.stopPropagation(); s.isVideoMuted = !s.isVideoMuted; }} onmousedown={(e) => e.preventDefault()}>
+												<button aria-label="Toggle Mute" class="w-8 h-8 flex items-center justify-center bg-transparent transition-all hover:bg-white/10 cursor-pointer {s.isVideoMuted ? 'text-red-500' : 'text-white'}" tabindex="-1" onclick={(e) => { e.stopPropagation(); s.isVideoMuted = !s.isVideoMuted; }} onpointerdown={(e) => e.preventDefault()}>
 													{#if s.isVideoMuted}
 														<VolumeX class="h-5 w-5" />
 													{:else}
@@ -418,14 +420,14 @@
 											<!-- Other Functions -->
 											<div class="flex items-center gap-1">
 												{#if onSwitchToAudio}
-													<button aria-label="Audio Only" class="btn btn-ghost w-8 h-8 min-h-0 p-0 text-white transition-colors hover:bg-white/10" onclick={(e) => { e.stopPropagation(); onSwitchToAudio(); }} title="Audio Only Mode" onmousedown={(e) => e.preventDefault()}>
+													<button aria-label="Audio Only" class="w-8 h-8 flex items-center justify-center bg-transparent text-white transition-colors hover:bg-white/10 cursor-pointer" tabindex="-1" onclick={(e) => { e.stopPropagation(); onSwitchToAudio(); }} title="Audio Only Mode" onpointerdown={(e) => e.preventDefault()}>
 														<Music class="h-5 w-5" />
 													</button>
 												{/if}
-												<button aria-label="Rotate" class="btn btn-ghost w-8 h-8 min-h-0 p-0 text-white transition-colors hover:bg-white/10" onclick={(e) => { e.stopPropagation(); ctrl.rotateVideo(); }} onmousedown={(e) => e.preventDefault()}>
+												<button aria-label="Rotate" class="w-8 h-8 flex items-center justify-center bg-transparent text-white transition-colors hover:bg-white/10 cursor-pointer" tabindex="-1" onclick={(e) => { e.stopPropagation(); ctrl.rotateVideo(); }} onpointerdown={(e) => e.preventDefault()}>
 													<RotateCw class="h-5 w-5" />
 												</button>
-												<button aria-label="Toogle Fullscreen" class="btn btn-ghost w-8 h-8 min-h-0 p-0 text-white transition-colors hover:bg-white/10" onclick={(e) => { e.stopPropagation(); ctrl.toggleFullscreen(); }} onmousedown={(e) => e.preventDefault()}>
+												<button aria-label="Toogle Fullscreen" class="w-8 h-8 flex items-center justify-center bg-transparent text-white transition-colors hover:bg-white/10 cursor-pointer" tabindex="-1" onclick={(e) => { e.stopPropagation(); ctrl.toggleFullscreen(); }} onpointerdown={(e) => e.preventDefault()}>
 													{#if s.isFullscreen}
 														<Minimize class="h-5 w-5" />
 													{:else}

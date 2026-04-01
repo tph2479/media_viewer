@@ -119,6 +119,7 @@
 		tabindex="-1"
 		class="fixed inset-0 z-[300] bg-black/40 backdrop-blur-md flex flex-col h-full w-full overflow-hidden outline-none animate-in fade-in duration-300"
 		onmousemove={imgState.handleMouseMoveVisibility}
+		onmouseleave={() => imgState.hideControlsImmediately()}
 	>
 		<!-- TOP BACKGROUND SHADOW (Full Width) -->
 		<div
@@ -138,8 +139,8 @@
 				class="text-white/90 pointer-events-auto flex flex-col max-w-full pr-12"
 				onclick={(e) => e.stopPropagation()}
 				onkeydown={(e) => e.stopPropagation()}
-				onmouseenter={() => (imgState.isHoveringControls = true)}
-				onmouseleave={() => (imgState.isHoveringControls = false)}
+				onmouseenter={() => (imgState.isHoveringInfo = true)}
+				onmouseleave={() => (imgState.isHoveringInfo = false)}
 				role="presentation"
 			>
 				{#if imgState.currentItem}
@@ -170,9 +171,7 @@
 						</p>
 					{:else}
 						<div class="flex items-center gap-2 mt-2">
-							<span
-								class="loading loading-spinner loading-[10px] opacity-20"
-							></span>
+							<span class="w-[10px] h-[10px] border-2 border-white/20 border-t-white/60 rounded-full animate-spin opacity-20"></span>
 							<span
 								class="text-white/20 text-[10px] font-mono italic"
 								>Loading details...</span
@@ -191,14 +190,15 @@
 		>
 			<div
 				class="flex flex-col items-center gap-2 pointer-events-auto"
-				onmouseenter={() => (imgState.isHoveringControls = true)}
-				onmouseleave={() => (imgState.isHoveringControls = false)}
+				onmouseenter={() => (imgState.isHoveringRightControls = true)}
+				onmouseleave={() => (imgState.isHoveringRightControls = false)}
 				role="presentation"
 			>
 				<!-- Close Button -->
 				<button
 					aria-label="Close"
-					class="btn rounded-xl w-12 h-12 min-h-0 p-0 bg-zinc-900/95 hover:bg-zinc-800 text-white border border-white/10 backdrop-blur-xl shadow-2xl transition-all hover:scale-110 mb-2"
+					class="w-12 h-12 flex items-center justify-center rounded-xl bg-zinc-900/95 hover:bg-zinc-800 text-white border border-white/10 backdrop-blur-xl shadow-2xl transition-all hover:scale-110 mb-2 cursor-pointer"
+					tabindex="-1"
 					style="touch-action: manipulation;"
 					onclick={(e) => {
 						e.stopPropagation();
@@ -211,11 +211,12 @@
 
 				<!-- Navigation Group -->
 				<div
-					class="flex flex-col bg-zinc-900/95 rounded-xl backdrop-blur-xl border border-white/10 overflow-hidden shadow-2xl w-12 mb-3 pointer-events-auto"
+					class="flex flex-col bg-zinc-900/95 rounded-xl backdrop-blur-xl border border-white/10 overflow-hidden shadow-2xl w-12 mb-3"
 				>
 					<button
 						aria-label="Previous"
-						class="btn btn-ghost w-12 h-12 min-h-0 p-0 text-white rounded-none border-b border-white/10 transition-colors hover:bg-white/5"
+						class="w-12 h-12 flex items-center justify-center bg-transparent text-white border-b border-white/10 transition-colors hover:bg-white/5 cursor-pointer"
+						tabindex="-1"
 						style="touch-action: manipulation;"
 						onclick={(e) => {
 							e.stopPropagation();
@@ -227,7 +228,8 @@
 					</button>
 					<button
 						aria-label="Next"
-						class="btn btn-ghost border-none w-12 h-12 min-h-0 p-0 text-white rounded-none transition-colors hover:bg-white/5"
+						class="w-12 h-12 flex items-center justify-center bg-transparent text-white border-none transition-colors hover:bg-white/5 cursor-pointer"
+						tabindex="-1"
 						style="touch-action: manipulation;"
 						onclick={(e) => {
 							e.stopPropagation();
@@ -241,11 +243,12 @@
 
 				<!-- Zoom Modes -->
 				<div
-					class="flex flex-col bg-zinc-900/95 rounded-xl backdrop-blur-xl border border-white/10 overflow-hidden shadow-2xl w-12 mb-3 pointer-events-auto"
+					class="flex flex-col bg-zinc-900/95 rounded-xl backdrop-blur-xl border border-white/10 overflow-hidden shadow-2xl w-12 mb-3"
 				>
 					<button
 						aria-label="Fit Width"
-						class="btn btn-ghost w-12 h-12 min-h-0 p-0 text-white rounded-none border-b border-white/10 flex items-center justify-center transition-colors hover:bg-white/5"
+						class="w-12 h-12 flex items-center justify-center bg-transparent text-white border-b border-white/10 transition-colors hover:bg-white/5 cursor-pointer"
+						tabindex="-1"
 						style="touch-action: manipulation;"
 						onclick={(e) => {
 							e.stopPropagation();
@@ -257,7 +260,8 @@
 					</button>
 					<button
 						aria-label="Toggle 1:1"
-						class="btn btn-ghost border-none w-12 h-12 min-h-0 p-0 text-white rounded-none font-black font-mono flex items-center justify-center text-[10px] transition-colors hover:bg-white/5"
+						class="w-12 h-12 flex items-center justify-center bg-transparent text-white border-none font-black font-mono text-[10px] transition-colors hover:bg-white/5 cursor-pointer"
+						tabindex="-1"
 						style="touch-action: manipulation;"
 						onclick={(e) => {
 							e.stopPropagation();
@@ -269,7 +273,8 @@
 					</button>
 					<button
 						aria-label="Rotate"
-						class="btn btn-ghost w-12 h-12 min-h-0 p-0 text-white rounded-none transition-colors hover:bg-white/5 border-t border-white/10 flex items-center justify-center"
+						class="w-12 h-12 flex items-center justify-center bg-transparent text-white border-t border-white/10 transition-colors hover:bg-white/5 cursor-pointer"
+						tabindex="-1"
 						style="touch-action: manipulation;"
 						onclick={(e) => {
 							e.stopPropagation();
@@ -283,11 +288,12 @@
 
 				<!-- Zoom Controls -->
 				<div
-					class="flex flex-col bg-zinc-900/95 rounded-xl backdrop-blur-xl border border-white/10 overflow-hidden shadow-2xl w-12 pointer-events-auto"
+					class="flex flex-col bg-zinc-900/95 rounded-xl backdrop-blur-xl border border-white/10 overflow-hidden shadow-2xl w-12"
 				>
 					<button
 						aria-label="Zoom In"
-						class="btn btn-ghost w-12 h-12 min-h-0 p-0 text-white rounded-none border-b border-white/10 transition-colors hover:bg-white/5"
+						class="w-12 h-12 flex items-center justify-center bg-transparent text-white border-b border-white/10 transition-colors hover:bg-white/5 cursor-pointer"
+						tabindex="-1"
 						style="touch-action: manipulation;"
 						onclick={(e) => {
 							e.stopPropagation();
@@ -301,7 +307,8 @@
 					</button>
 					<button
 						aria-label="Current Zoom"
-						class="w-full py-2 text-[10px] font-mono font-black text-white hover:bg-white/10 transition-colors bg-white/5 flex items-center justify-center tracking-tighter vertical-text"
+						class="w-full py-2 text-[10px] font-mono font-black text-white hover:bg-white/10 transition-colors bg-white/5 flex items-center justify-center tracking-tighter cursor-pointer"
+						tabindex="-1"
 						style="touch-action: manipulation;"
 						onclick={(e) => {
 							e.stopPropagation();
@@ -313,7 +320,8 @@
 					</button>
 					<button
 						aria-label="Zoom Out"
-						class="btn btn-ghost w-12 h-12 min-h-0 p-0 text-white rounded-none border-t border-white/10 transition-colors hover:bg-white/5"
+						class="w-12 h-12 flex items-center justify-center bg-transparent text-white border-t border-white/10 transition-colors hover:bg-white/5 cursor-pointer"
+						tabindex="-1"
 						style="touch-action: manipulation;"
 						onclick={(e) => {
 							e.stopPropagation();
