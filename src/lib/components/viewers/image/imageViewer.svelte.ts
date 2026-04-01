@@ -35,9 +35,13 @@ export function createImageModalState(props: {
 	let currentImageSrc = $state('');
 	let isPortraitImage = $state(false);
 
-	let topControlsVisible = $state(false);
-	let isHoveringControls = $state(false);
-	let topHideTimerId: any = null;
+	let infoVisible = $state(false);
+	let isHoveringInfo = $state(false);
+	let infoHideTimerId: any = null;
+
+	let rightControlsVisible = $state(false);
+	let isHoveringRightControls = $state(false);
+	let rightHideTimerId: any = null;
 
 	let currentMetadata = $state<any>(null);
 	let isMetadataLoading = $state(false);
@@ -190,7 +194,8 @@ export function createImageModalState(props: {
 
 	function cleanup() {
 		currentImageSrc = '';
-		if (topHideTimerId) clearTimeout(topHideTimerId);
+		if (infoHideTimerId) clearTimeout(infoHideTimerId);
+		if (rightHideTimerId) clearTimeout(rightHideTimerId);
 		if (wheelPanResetTimer) clearTimeout(wheelPanResetTimer);
 	}
 
@@ -236,25 +241,49 @@ export function createImageModalState(props: {
 		const ratioX = e.clientX / width;
 		const ratioY = e.clientY / height;
 
-		const isInTopStrip = ratioY < 0.2; 
-		const isInCornerTriangle = (ratioX - ratioY) > 0.5;
+		const selection = window.getSelection();
+		const hasSelection = selection && selection.toString().length > 0;
 
-		if (isInTopStrip || isInCornerTriangle) {
-			topControlsVisible = true;
-			if (topHideTimerId) clearTimeout(topHideTimerId);
-			if (!isHoveringControls) {
-				topHideTimerId = setTimeout(() => {
-					if (!isHoveringControls) {
-						topControlsVisible = false;
-						topHideTimerId = null;
+		const isInTopStrip = ratioY < 0.15; 
+		const isInRightStrip = ratioX > 0.85;
+
+		if (hasSelection || isInTopStrip) {
+			infoVisible = true;
+			if (infoHideTimerId) clearTimeout(infoHideTimerId);
+			if (!isHoveringInfo) {
+				infoHideTimerId = setTimeout(() => {
+					const currentSelection = window.getSelection();
+					const stillHasSelection = currentSelection && currentSelection.toString().length > 0;
+					if (!isHoveringInfo && !stillHasSelection) {
+						infoVisible = false;
+						infoHideTimerId = null;
 					}
 				}, 2000);
 			}
-		} else if (!isHoveringControls) {
-			topControlsVisible = false;
-			if (topHideTimerId) {
-				clearTimeout(topHideTimerId);
-				topHideTimerId = null;
+		} else if (!isHoveringInfo) {
+			infoVisible = false;
+			if (infoHideTimerId) {
+				clearTimeout(infoHideTimerId);
+				infoHideTimerId = null;
+			}
+		}
+		
+		if (isInRightStrip) {
+			rightControlsVisible = true;
+			if (rightHideTimerId) clearTimeout(rightHideTimerId);
+			if (!isHoveringRightControls) {
+				rightHideTimerId = setTimeout(() => {
+					if (!isHoveringRightControls) {
+						rightControlsVisible = false;
+						rightHideTimerId = null;
+					}
+				}, 2000);
+			}
+		} else if (!isHoveringRightControls) {
+			rightControlsVisible = false;
+			if (rightHideTimerId) {
+				clearTimeout(rightHideTimerId);
+				rightHideTimerId = null;
 			}
 		}
 	}
@@ -273,7 +302,8 @@ export function createImageModalState(props: {
 	}
 
 	function closeModal() {
-		if (topHideTimerId) { clearTimeout(topHideTimerId); topHideTimerId = null; }
+		if (infoHideTimerId) { clearTimeout(infoHideTimerId); infoHideTimerId = null; }
+		if (rightHideTimerId) { clearTimeout(rightHideTimerId); rightHideTimerId = null; }
 		props.isModalOpen = false;
 		resetZoomAndPan();
 	}
@@ -545,14 +575,16 @@ export function createImageModalState(props: {
         get currentImageSrc() { return currentImageSrc; },
         get isPortraitImage() { return isPortraitImage; },
         set isPortraitImage(v) { isPortraitImage = v; },
-        get topControlsVisible() { return topControlsVisible; },
+        get infoVisible() { return infoVisible; },
+        get rightControlsVisible() { return rightControlsVisible; },
         get currentMetadata() { return currentMetadata; },
         get imageKey() { return imageKey; },
         get currentItem() { return currentItem; },
         get absoluteZoomPercent() { return absoluteZoomPercent; },
         get currentImageIndexDisplay() { return currentImageIndexDisplay; },
 
-        set isHoveringControls(v: boolean) { isHoveringControls = v; },
+        set isHoveringInfo(v: boolean) { isHoveringInfo = v; },
+        set isHoveringRightControls(v: boolean) { isHoveringRightControls = v; },
         set metadataRetryCount(v: number) { metadataRetryCount = v; },
 
         fitImageToViewport,

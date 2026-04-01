@@ -122,20 +122,20 @@
 	>
 		<!-- TOP BACKGROUND SHADOW (Full Width) -->
 		<div
-			class="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-black/60 to-transparent pointer-events-none transition-opacity duration-300 {imgState.topControlsVisible
+			class="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-black/60 to-transparent pointer-events-none transition-opacity duration-300 {imgState.infoVisible
 				? 'opacity-100'
 				: 'opacity-0'} z-[110]"
 		></div>
 
 		<!-- Toolbar (Top) -->
 		<div
-			class="absolute top-0 w-full p-4 flex justify-between items-start z-[110] bg-transparent pointer-events-none transition-all duration-300 {imgState.topControlsVisible
+			class="absolute top-0 w-full p-4 flex justify-between items-start z-[110] bg-transparent pointer-events-none transition-all duration-300 {imgState.infoVisible
 				? 'opacity-100 translate-y-0'
 				: 'opacity-0 -translate-y-4'}"
 		>
 			<!-- TOP LEFT: Info Area -->
 			<div
-				class="text-white/90 pointer-events-auto flex flex-col max-w-[70%]"
+				class="text-white/90 pointer-events-auto flex flex-col max-w-full pr-12"
 				onclick={(e) => e.stopPropagation()}
 				onkeydown={(e) => e.stopPropagation()}
 				onmouseenter={() => (imgState.isHoveringControls = true)}
@@ -144,7 +144,7 @@
 			>
 				{#if imgState.currentItem}
 					<p
-						class="select-text text-white font-black text-lg sm:text-2xl tracking-tight whitespace-normal break-words leading-tight"
+						class="select-text text-white font-black text-lg sm:text-2xl tracking-tight leading-tight image-title-scroll"
 					>
 						<span class="px-2 py-0.5 -mx-2 rounded-lg">
 							{imgState.currentImageIndexDisplay} / {totalImages} —
@@ -181,10 +181,16 @@
 					{/if}
 				{/if}
 			</div>
+		</div>
 
-			<!-- TOP RIGHT: Button Area -->
+		<!-- RIGHT: Button Area (Vertically Centered) -->
+		<div
+			class="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-center z-[110] bg-transparent pointer-events-none transition-all duration-300 {imgState.rightControlsVisible
+				? 'opacity-100 translate-x-0'
+				: 'opacity-0 translate-x-4'}"
+		>
 			<div
-				class="flex flex-col items-center gap-2 pointer-events-auto ml-2"
+				class="flex flex-col items-center gap-2 pointer-events-auto"
 				onmouseenter={() => (imgState.isHoveringControls = true)}
 				onmouseleave={() => (imgState.isHoveringControls = false)}
 				role="presentation"
@@ -193,11 +199,12 @@
 				<button
 					aria-label="Close"
 					class="btn rounded-xl w-12 h-12 min-h-0 p-0 bg-zinc-900/95 hover:bg-zinc-800 text-white border border-white/10 backdrop-blur-xl shadow-2xl transition-all hover:scale-110 mb-2"
+					style="touch-action: manipulation;"
 					onclick={(e) => {
 						e.stopPropagation();
 						imgState.closeModal();
 					}}
-					onmousedown={(e) => e.preventDefault()}
+					onpointerdown={(e) => e.preventDefault()}
 				>
 					<X class="h-6 w-6" />
 				</button>
@@ -209,22 +216,24 @@
 					<button
 						aria-label="Previous"
 						class="btn btn-ghost w-12 h-12 min-h-0 p-0 text-white rounded-none border-b border-white/10 transition-colors hover:bg-white/5"
+						style="touch-action: manipulation;"
 						onclick={(e) => {
 							e.stopPropagation();
 							imgState.prevImage();
 						}}
-						onmousedown={(e) => e.preventDefault()}
+						onpointerdown={(e) => e.preventDefault()}
 					>
 						<ChevronLeft class="h-6 w-6" />
 					</button>
 					<button
 						aria-label="Next"
 						class="btn btn-ghost border-none w-12 h-12 min-h-0 p-0 text-white rounded-none transition-colors hover:bg-white/5"
+						style="touch-action: manipulation;"
 						onclick={(e) => {
 							e.stopPropagation();
 							imgState.nextImage();
 						}}
-						onmousedown={(e) => e.preventDefault()}
+						onpointerdown={(e) => e.preventDefault()}
 					>
 						<ChevronRight class="h-6 w-6" />
 					</button>
@@ -237,33 +246,36 @@
 					<button
 						aria-label="Fit Width"
 						class="btn btn-ghost w-12 h-12 min-h-0 p-0 text-white rounded-none border-b border-white/10 flex items-center justify-center transition-colors hover:bg-white/5"
+						style="touch-action: manipulation;"
 						onclick={(e) => {
 							e.stopPropagation();
 							imgState.toggleFitWidth();
 						}}
-						onmousedown={(e) => e.preventDefault()}
+						onpointerdown={(e) => e.preventDefault()}
 					>
 						<Maximize2 class="h-6 w-6" />
 					</button>
 					<button
 						aria-label="Toggle 1:1"
 						class="btn btn-ghost border-none w-12 h-12 min-h-0 p-0 text-white rounded-none font-black font-mono flex items-center justify-center text-[10px] transition-colors hover:bg-white/5"
+						style="touch-action: manipulation;"
 						onclick={(e) => {
 							e.stopPropagation();
 							imgState.toggleZoom(e.clientX, e.clientY);
 						}}
-						onmousedown={(e) => e.preventDefault()}
+						onpointerdown={(e) => e.preventDefault()}
 					>
 						1:1
 					</button>
 					<button
 						aria-label="Rotate"
 						class="btn btn-ghost w-12 h-12 min-h-0 p-0 text-white rounded-none transition-colors hover:bg-white/5 border-t border-white/10 flex items-center justify-center"
+						style="touch-action: manipulation;"
 						onclick={(e) => {
 							e.stopPropagation();
 							imgState.rotateImage();
 						}}
-						onmousedown={(e) => e.preventDefault()}
+						onpointerdown={(e) => e.preventDefault()}
 					>
 						<RotateCw class="h-6 w-6" />
 					</button>
@@ -290,6 +302,7 @@
 					<button
 						aria-label="Current Zoom"
 						class="w-full py-2 text-[10px] font-mono font-black text-white hover:bg-white/10 transition-colors bg-white/5 flex items-center justify-center tracking-tighter vertical-text"
+						style="touch-action: manipulation;"
 						onclick={(e) => {
 							e.stopPropagation();
 							imgState.resetAll();
@@ -301,13 +314,14 @@
 					<button
 						aria-label="Zoom Out"
 						class="btn btn-ghost w-12 h-12 min-h-0 p-0 text-white rounded-none border-t border-white/10 transition-colors hover:bg-white/5"
+						style="touch-action: manipulation;"
 						onclick={(e) => {
 							e.stopPropagation();
 							imgState.performZoom(
 								Math.max(0.001, imgState.zoomLevel / 1.35),
 							);
 						}}
-						onmousedown={(e) => e.preventDefault()}
+						onpointerdown={(e) => e.preventDefault()}
 					>
 						<Minus class="h-6 w-6" />
 					</button>
@@ -398,3 +412,17 @@
 		</div>
 	</div>
 {/if}
+
+<style>
+	/* Scrollable title - hidden scrollbar */
+	:global(.image-title-scroll) {
+		overflow-x: auto;
+		white-space: nowrap;
+		/* Hide scrollbar for all browsers */
+		scrollbar-width: none; /* Firefox */
+		-ms-overflow-style: none; /* IE/Edge */
+	}
+	:global(.image-title-scroll::-webkit-scrollbar) {
+		display: none; /* Chrome/Safari/Opera */
+	}
+</style>
