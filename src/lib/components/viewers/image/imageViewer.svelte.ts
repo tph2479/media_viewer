@@ -35,6 +35,17 @@ export function createImageModalState(props: {
 	let currentImageSrc = $state('');
 	let isPortraitImage = $state(false);
 
+	let isPinching = $state(false);
+	let pinchStartDistance = 0;
+	let pinchStartZoom = 1;
+	let pinchStartTranslateX = 0;
+	let pinchStartTranslateY = 0;
+	let pinchCenterX = 0;
+	let pinchCenterY = 0;
+
+	let pinchTranslateX = $state(0);
+	let pinchTranslateY = $state(0);
+
 	let infoVisible = $state(false);
 	let isHoveringInfo = $state(false);
 	let infoHideTimerId: any = null;
@@ -74,6 +85,7 @@ export function createImageModalState(props: {
 	});
 
 	$effect.pre(() => {
+		if (isPinching) return;
 		if (needsHorizontalPan || isWheelPanningH) {
 			translateX = Math.max(-maxTranslateX, Math.min(maxTranslateX, translateX));
 		} else {
@@ -206,21 +218,6 @@ export function createImageModalState(props: {
 		rightControlsVisible = false;
 	}
 
-	function toggleControlsVisibility() {
-		infoVisible = true;
-		rightControlsVisible = true;
-		if (infoHideTimerId) clearTimeout(infoHideTimerId);
-		if (rightHideTimerId) clearTimeout(rightHideTimerId);
-		infoHideTimerId = setTimeout(() => {
-			infoVisible = false;
-			infoHideTimerId = null;
-		}, 3000);
-		rightHideTimerId = setTimeout(() => {
-			rightControlsVisible = false;
-			rightHideTimerId = null;
-		}, 3000);
-	}
-
 	function fitImageToViewport(forcedRotation?: number) {
 		if (renderedWidth > 0 && naturalWidth > 0 && naturalHeight > 0) {
 			const rot = forcedRotation !== undefined ? forcedRotation : rotation;
@@ -331,9 +328,19 @@ export function createImageModalState(props: {
 	}
 
 	function performZoom(newZoom: number, anchorX?: number, anchorY?: number) {
-		if (newZoom === zoomLevel) return;
+		const minZoom = getBestFitZoom();
+		const clampedZoom = Math.max(minZoom, Math.min(maxZoom, newZoom));
 		const oldZoom = zoomLevel;
-		zoomLevel = newZoom;
+		
+		if (clampedZoom <= minZoom + 0.001) {
+			zoomLevel = minZoom;
+			translateX = 0;
+			translateY = 0;
+			return;
+		}
+		
+		if (clampedZoom === zoomLevel) return;
+		zoomLevel = clampedZoom;
 
 		if (typeof window !== 'undefined') {
 			const ax = (anchorX ?? window.innerWidth / 2) - window.innerWidth / 2;
@@ -341,6 +348,18 @@ export function createImageModalState(props: {
 			translateX = ax - (ax - translateX) * (zoomLevel / oldZoom);
 			translateY = ay - (ay - translateY) * (zoomLevel / oldZoom);
 		}
+	}
+
+	function getBestFitZoom() {
+		if (renderedWidth <= 0 || naturalWidth <= 0 || naturalHeight <= 0) return 1;
+		const isRot = rotation === 90 || rotation === 270;
+		const imgH = renderedWidth * (naturalHeight / naturalWidth);
+		const fitW = isRot ? imgH : renderedWidth;
+		const fitH = isRot ? renderedWidth : imgH;
+		const isDesktop = window.innerWidth >= 768;
+		const targetW = isDesktop ? 0.8 : 1.0;
+		const targetH = isDesktop ? 0.9 : 1.0;
+		return Math.min((window.innerWidth * targetW) / fitW, (window.innerHeight * targetH) / fitH);
 	}
 
 	function toggleZoom(anchorX?: number, anchorY?: number) {
@@ -378,12 +397,61 @@ export function createImageModalState(props: {
 		}
 	}
 
+	function getTouchDistance(t1: Touch, t2: Touch) {
+		const dx = t1.clientX - t2.clientX;
+		const dy = t1.clientY - t2.clientY;
+		return Math.sqrt(dx * dx + dy * dy);
+	}
+
+	function handleTouchStart(event: TouchEvent) {
+		if (event.touches.length === 2) {
+			event.preventDefault();
+			isDragging = false;
+			isPinching = true;
+			pinchStartDistance = getTouchDistance(event.touches[0], event.touches[1]);
+			pinchStartZoom = zoomLevel;
+			pinchStartTranslateX = translateX;
+			pinchStartTranslateY = translateY;
+			pinchCenterX = (event.touches[0].clientX + event.touches[1].clientX) / 2 - window.innerWidth / 2;
+			pinchCenterY = (event.touches[0].clientY + event.touches[1].clientY) / 2 - window.innerHeight / 2;
+		}
+	}
+
+	function handleTouchMove(event: TouchEvent) {
+		if (!isPinching || event.touches.length !== 2) return;
+		event.preventDefault();
+
+		const currentDistance = getTouchDistance(event.touches[0], event.touches[1]);
+		const scale = currentDistance / pinchStartDistance;
+		const newZoom = Math.min(maxZoom, Math.max(getBestFitZoom(), pinchStartZoom * scale));
+		const zoomRatio = newZoom / pinchStartZoom;
+
+		const stx = pinchStartTranslateX;
+		const sty = pinchStartTranslateY;
+
+		zoomLevel = newZoom;
+		translateX = pinchCenterX - (pinchCenterX - stx) * zoomRatio;
+		translateY = pinchCenterY - (pinchCenterY - sty) * zoomRatio;
+	}
+
+	function handleTouchEnd(event: TouchEvent) {
+		if (isPinching && event.touches.length === 0) {
+			isPinching = false;
+			const minZoom = getBestFitZoom();
+			if (zoomLevel <= minZoom + 0.001) {
+				zoomLevel = minZoom;
+				translateX = 0;
+				translateY = 0;
+			}
+		}
+	}
+
 	function handleWheel(event: WheelEvent) {
 		if (event.ctrlKey) {
 			const delta = event.deltaY;
 			const adjustedDelta = event.deltaMode === 1 ? delta * 33 : (event.deltaMode === 2 ? delta * window.innerHeight : delta);
 			event.preventDefault(); 
-			const newZoom = Math.min(maxZoom, Math.max(minZoom, zoomLevel * Math.pow(1.0015, -adjustedDelta)));
+			const newZoom = Math.min(maxZoom, Math.max(minZoom, zoomLevel * Math.pow(1.005, -adjustedDelta)));
 			performZoom(newZoom, event.clientX, event.clientY);
 			return;
 		}
@@ -593,6 +661,7 @@ export function createImageModalState(props: {
         set renderedWidth(v) { renderedWidth = v; },
         get isFullImageLoaded() { return isFullImageLoaded; },
         set isFullImageLoaded(v) { isFullImageLoaded = v; },
+        get isPinching() { return isPinching; },
         get rotation() { return rotation; },
         get currentImageSrc() { return currentImageSrc; },
         get isPortraitImage() { return isPortraitImage; },
@@ -620,12 +689,14 @@ export function createImageModalState(props: {
         startDrag,
         onDrag,
         stopDrag,
+        handleTouchStart,
+        handleTouchMove,
+        handleTouchEnd,
         nextImage,
         prevImage,
         handleKeyDown,
-        cleanup,
+		cleanup,
 		resetAll,
-		hideControlsImmediately,
-		toggleControlsVisibility
+		hideControlsImmediately
     };
 }

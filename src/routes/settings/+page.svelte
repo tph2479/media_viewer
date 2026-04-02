@@ -155,6 +155,7 @@
                                     if (e.key === "Enter") {
                                         e.preventDefault();
                                         handleSave();
+                                        (e.target as HTMLInputElement).blur();
                                     }
                                 }}
                                 placeholder="Type or browse to select folder…"
