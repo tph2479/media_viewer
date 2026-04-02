@@ -355,15 +355,15 @@
 								<div class="text-white text-xs sm:text-sm font-mono shrink-0">
 									{formatVideoTime(s.videoTime)} / {formatVideoTime(s.videoDuration)}
 								</div>
-								<button
-									aria-label="Close"
-									class="w-12 h-12 flex items-center justify-center text-white hover:bg-white/10 rounded transition-colors cursor-pointer shrink-0"
-									tabindex="-1"
-									onclick={(e) => { e.stopPropagation(); closeModal(); }}
-									onpointerdown={(e) => e.preventDefault()}
-								>
-									<X class="h-7 w-7" />
-								</button>
+				<button
+					aria-label="Close"
+					class="w-12 h-12 flex items-center justify-center text-white hover:bg-white/10 rounded transition-colors cursor-pointer shrink-0"
+					tabindex="-1"
+					onclick={(e) => { e.stopPropagation(); closeModal(); }}
+					onpointerdown={(e) => e.preventDefault()}
+				>
+					<X class="h-7 w-7" />
+				</button>
 							</div>
 
 							<!-- Row 2: Title -->

@@ -61,9 +61,19 @@ export function createVideoController() {
 		const container = globalThis.document.getElementById('media-modal-container');
 		if (!container) return;
 		if (!globalThis.document.fullscreenElement) {
-			container.requestFullscreen().then(() => { s.isFullscreen = true; }).catch(() => { });
+			container.requestFullscreen().then(() => {
+				s.isFullscreen = true;
+				if ('orientation' in globalThis.screen) {
+					(globalThis.screen as any).orientation.lock?.('landscape').catch(() => {});
+				}
+			}).catch(() => { });
 		} else {
-			globalThis.document.exitFullscreen().then(() => { s.isFullscreen = false; }).catch(() => { });
+			globalThis.document.exitFullscreen().then(() => {
+				s.isFullscreen = false;
+				if ('orientation' in globalThis.screen) {
+					(globalThis.screen as any).orientation.unlock?.();
+				}
+			}).catch(() => { });
 		}
 	}
 
