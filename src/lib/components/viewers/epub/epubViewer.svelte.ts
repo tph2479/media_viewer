@@ -21,6 +21,7 @@ export type TocItem = {
 export type SearchResult = {
 	cfi: string;
 	excerpt: string;
+	label?: string;
 };
 
 export type FontOption = {
@@ -71,7 +72,7 @@ export function createEpubViewerState(filePath: string) {
 		fontFamily: 'inherit',
 		fontSize: 18,
 		lineSpacing: 1.6,
-		contentWidth: 720,
+		contentWidth: 920,
 	});
 
 	function initThemeSync() {
@@ -102,6 +103,8 @@ export function createEpubViewerState(filePath: string) {
 		isSearching: false,
 		progress: 0, // 0-1 while searching
 	});
+
+	let searchAbortController: AbortController | null = null;
 
 	// ── Internal references (not reactive) ────────────────────────────────────
 	let viewEl: HTMLElement | null = null; // foliate-view DOM element
@@ -157,11 +160,7 @@ export function createEpubViewerState(filePath: string) {
 			const body = contents[0].doc.body;
 			if (isMobile) {
 				body.style.maxWidth = '100%';
-<<<<<<< HEAD
-				body.style.margin = '0';
-=======
 				body.style.margin = '0 16px';
->>>>>>> 7949500 (epub viewer ui fix)
 			} else if (settings.contentWidth > 0) {
 				body.style.maxWidth = `${settings.contentWidth}px`;
 				body.style.margin = '0 auto';
@@ -212,7 +211,6 @@ export function createEpubViewerState(filePath: string) {
 			// Set scrolled flow + initial styles right away
 			(viewEl as any).renderer?.setAttribute('flow', 'scrolled');
 			applyStyles();
-			setupIframeKeyboardCapture();
 		} catch (e: any) {
 			console.error('EPUB open error:', e);
 			ui.errorMsg = e?.message ?? 'Failed to open EPUB';
@@ -221,55 +219,53 @@ export function createEpubViewerState(filePath: string) {
 		}
 	}
 
+	// Track documents that already have listeners
+	const capturedDocs = new WeakSet<Document>();
+
 	function setupIframeKeyboardCapture() {
-		const trySetup = () => {
-			const renderer = (viewEl as any).renderer;
-			if (!renderer) return false;
+		const renderer = (viewEl as any).renderer;
+		if (!renderer) return;
 
-			const contents = renderer.getContents?.();
-			if (!contents?.length) return false;
+		const contents = renderer.getContents?.();
+		if (!contents?.length) return;
 
-			for (const c of contents) {
-				if (c?.doc) {
-					const win = c.doc.defaultView;
-					if (!win) continue;
+		for (const c of contents) {
+			if (!c?.doc || capturedDocs.has(c.doc)) continue;
+			capturedDocs.add(c.doc);
 
-					c.doc.addEventListener('keydown', (e: Event) => {
-						const ke = e as KeyboardEvent;
-						if (ke.key === 'Escape' || ke.key === 'Tab') {
-							e.stopPropagation();
-							e.preventDefault();
-							const parentWin = win.parent || win;
-							parentWin.dispatchEvent(new KeyboardEvent('keydown', {
-								key: ke.key,
-								code: ke.code,
-								ctrlKey: ke.ctrlKey,
-								metaKey: ke.metaKey,
-								shiftKey: ke.shiftKey,
-								bubbles: true,
-								cancelable: true,
-							}));
-						}
-					});
+			c.doc.addEventListener('keydown', (e: Event) => {
+				const ke = e as KeyboardEvent;
+				const isShortcut =
+					ke.key === 'Escape' ||
+					ke.key === 'Tab' ||
+					ke.key === 'ArrowLeft' ||
+					ke.key === 'ArrowRight' ||
+					ke.key === 'ArrowUp' ||
+					ke.key === 'ArrowDown' ||
+					(ke.key === ' ' && !ke.ctrlKey && !ke.metaKey);
+
+				if (isShortcut) {
+					e.stopPropagation();
+					e.preventDefault();
+					window.dispatchEvent(new KeyboardEvent('keydown', {
+						key: ke.key,
+						code: ke.code,
+						ctrlKey: ke.ctrlKey,
+						metaKey: ke.metaKey,
+						shiftKey: ke.shiftKey,
+						bubbles: true,
+						cancelable: true,
+					}));
 				}
-			}
-			return true;
-		};
-
-		if (!trySetup()) {
-			setTimeout(() => {
-				if (!trySetup()) {
-					setTimeout(trySetup, 1000);
-				}
-			}, 1000);
+			}, true);
 		}
 	}
 
 	// ─── Event handlers (book events) ─────────────────────────────────────────
 
 	function onLoad() {
-		// Refresh styles each time a new section loads (e.g. after font change)
 		applyStyles();
+		setupIframeKeyboardCapture();
 	}
 
 	function onRelocate(e: Event) {
@@ -304,13 +300,6 @@ export function createEpubViewerState(filePath: string) {
 	}
 
 	function nextChapter() {
-<<<<<<< HEAD
-		(viewEl as any)?.next();
-	}
-
-	function prevChapter() {
-		(viewEl as any)?.prev();
-=======
 		const view = viewEl as any;
 		const renderer = view?.renderer;
 		if (!renderer) return;
@@ -334,7 +323,6 @@ export function createEpubViewerState(filePath: string) {
 		if (currentIndex > 0) {
 			view.goTo(currentIndex - 1);
 		}
->>>>>>> 7949500 (epub viewer ui fix)
 	}
 
 	// ─── Settings: font, size, spacing, dark mode ─────────────────────────────
@@ -366,6 +354,20 @@ export function createEpubViewerState(filePath: string) {
 
 	// ─── Search ───────────────────────────────────────────────────────────────
 
+	function handlePageKey(key: string, shiftKey = false) {
+		const renderer = (viewEl as any)?.renderer;
+		if (!renderer) return;
+		if (key === 'PageDown' || key === 'ArrowRight' || key === 'ArrowDown' || key === ' ') {
+			if (key === ' ' && shiftKey) {
+				renderer.prev();
+			} else {
+				renderer.next();
+			}
+		} else if (key === 'PageUp' || key === 'ArrowLeft' || key === 'ArrowUp') {
+			renderer.prev();
+		}
+	}
+
 	async function runSearch(query: string) {
 		if (!viewEl || !query.trim()) return;
 		search.query = query;
@@ -374,17 +376,30 @@ export function createEpubViewerState(filePath: string) {
 		search.isSearching = true;
 		search.progress = 0;
 
+		searchAbortController = new AbortController();
+
 		try {
 			const iter = (viewEl as any).search({ query });
 			for await (const result of iter) {
+				if (searchAbortController.signal.aborted) break;
 				if (result === 'done') break;
 				if (result.progress != null) {
 					search.progress = result.progress;
 					continue;
 				}
-				// result has { subitems: [{cfi, excerpt}] } or { cfi, excerpt }
 				if (result.subitems) {
-					search.results.push(...result.subitems);
+					const label = result.label ?? '';
+					for (const sub of result.subitems) {
+						const exc = sub.excerpt;
+						const excerptHtml = typeof exc === 'string'
+							? exc
+							: `${exc.pre ?? ''}<mark>${exc.match ?? ''}</mark>${exc.post ?? ''}`;
+						search.results.push({
+							cfi: sub.cfi,
+							excerpt: excerptHtml,
+							label,
+						});
+					}
 				}
 			}
 			if (search.results.length > 0) {
@@ -395,14 +410,19 @@ export function createEpubViewerState(filePath: string) {
 			console.error('Search error:', e);
 		} finally {
 			search.isSearching = false;
+			searchAbortController = null;
 		}
 	}
 
 	function clearSearch() {
+		if (searchAbortController) {
+			searchAbortController.abort();
+		}
 		(viewEl as any)?.clearSearch();
 		search.results = [];
 		search.query = '';
 		search.currentIndex = -1;
+		search.isSearching = false;
 		search.progress = 0;
 	}
 
@@ -492,6 +512,7 @@ export function createEpubViewerState(filePath: string) {
 		clearSearch,
 		nextSearchResult,
 		prevSearchResult,
+		handlePageKey,
 
 		// UI
 		showControls,

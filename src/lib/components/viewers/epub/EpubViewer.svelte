@@ -12,6 +12,17 @@
 	// ── DOM refs ────────────────────────────────────────────────────────
 	let containerEl: HTMLElement;
 	let searchInputEl: HTMLInputElement = $state(undefined as unknown as HTMLInputElement);
+	let tocListEl: HTMLElement;
+
+	// ── Auto-scroll TOC to current chapter ──────────────────────────────
+	$effect(() => {
+		if (ui.isTocOpen) {
+			requestAnimationFrame(() => {
+				const activeBtn = tocListEl?.querySelector('.toc-item.active');
+				activeBtn?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+			});
+		}
+	});
 
 	// ── Lifecycle ───────────────────────────────────────────────────────
 	onMount(() => ctrl.init(containerEl));
@@ -39,10 +50,11 @@
 				onClose?.();
 			}
 		}
-	}
-
-	function onContainerKeydown(e: KeyboardEvent) {
-		onKeydown(e);
+		if (['PageDown', 'PageUp', 'ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp', ' '].includes(e.key)) {
+			if (e.key === ' ' && (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA')) return;
+			ctrl.handlePageKey(e.key, e.shiftKey);
+			e.preventDefault();
+		}
 	}
 
 	async function handleSearchSubmit(e: SubmitEvent) {
@@ -53,6 +65,7 @@
 
 <svelte:window onkeydown={onKeydown} />
 
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <!-- ── Root wrapper ────────────────────────────────────────────────────── -->
 <div
 	class="epub-root"
@@ -87,7 +100,7 @@
 				<h3>Contents</h3>
 				<button onclick={() => (ui.isTocOpen = false)} aria-label="Close TOC">✕</button>
 			</div>
-			<nav class="toc-list">
+			<nav class="toc-list" bind:this={tocListEl}>
 				{#each book.toc as item (item.href)}
 					<button
 						class="toc-item"
@@ -243,6 +256,7 @@
 					<button onclick={ctrl.prevSearchResult} aria-label="Previous result">‹</button>
 					<span>{search.currentIndex + 1} / {search.results.length}</span>
 					<button onclick={ctrl.nextSearchResult} aria-label="Next result">›</button>
+					<button onclick={ctrl.clearSearch} aria-label="Clear results" class="clear-btn">Clear</button>
 				</div>
 				<ol class="search-results">
 					{#each search.results as result, i (result.cfi)}
@@ -266,23 +280,20 @@
 	{/if}
 
 	<!-- ── Book renderer ────────────────────────────────────────────────── -->
-	<!-- svelte-ignore a11y_click_events_have_key_events -->
-	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div 
 		bind:this={containerEl} 
-		class="reader-container" 
-		onclick={(e) => e.currentTarget.focus()}
-		onkeydown={onContainerKeydown}
-		tabindex="0"
+		class="reader-container"
 	></div>
 
 	<!-- ── Reading progress bar ─────────────────────────────────────────── -->
-	<div class="progress-bar-track">
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div class="progress-bar-track" tabindex="-1">
 		<div class="progress-bar-fill" style="width:{reading.fraction * 100}%"></div>
 	</div>
 
 	<!-- ── Status bar ───────────────────────────────────────────────────── -->
-	<div class="status-bar" class:visible={ui.isControlsVisible}>
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div class="status-bar" class:visible={ui.isControlsVisible} tabindex="-1">
 		{#if reading.currentTocLabel}
 			<span class="toc-label">{reading.currentTocLabel}</span>
 		{/if}
@@ -452,6 +463,8 @@
 		background: rgba(0, 0, 0, 0.08);
 		position: relative;
 		flex-shrink: 0;
+		outline: none;
+		tabindex: -1;
 	}
 	.dark .progress-bar-track {
 		background: rgba(255, 255, 255, 0.08);
@@ -472,6 +485,8 @@
 		opacity: 0;
 		transition: opacity 0.2s;
 		flex-shrink: 0;
+		outline: none;
+		tabindex: -1;
 	}
 	.status-bar.visible { opacity: 0.6; }
 	.toc-label {
@@ -628,6 +643,15 @@
 		cursor: pointer;
 		color: inherit;
 		font-size: 1.1rem;
+	}
+	.search-meta .clear-btn {
+		font-size: 0.8rem;
+		padding: 0.2rem 0.5rem;
+		border: 1px solid rgba(0, 0, 0, 0.15);
+		border-radius: 4px;
+	}
+	.dark .search-meta .clear-btn {
+		border-color: rgba(255, 255, 255, 0.15);
 	}
 	.search-results {
 		list-style: none;

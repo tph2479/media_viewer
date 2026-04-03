@@ -33,7 +33,7 @@ const getViewport = (doc, viewport) => {
 export class FixedLayout extends HTMLElement {
     static observedAttributes = ['zoom']
     #root = this.attachShadow({ mode: 'closed' })
-    #observer = new ResizeObserver(() => this.#render())
+    #observer = new ResizeObserver(() => requestAnimationFrame(() => this.#render()))
     #spreads
     #index = -1
     defaultViewport
