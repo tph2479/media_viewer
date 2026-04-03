@@ -71,6 +71,7 @@ export function createEpubViewerState(filePath: string) {
 		fontFamily: 'inherit',
 		fontSize: 18,
 		lineSpacing: 1.6,
+		contentWidth: 720,
 	});
 
 	function initThemeSync() {
@@ -113,6 +114,7 @@ export function createEpubViewerState(filePath: string) {
 		const bg = settings.isDark ? '#1a1a2e' : '#f8f4ef';
 		const fg = settings.isDark ? '#d4cfc8' : '#2c2825';
 		const linkColor = settings.isDark ? '#90caf9' : '#1565c0';
+		const maxWidth = settings.contentWidth > 0 ? `${settings.contentWidth}px` : 'none';
 
 		return `
 			:root {
@@ -124,6 +126,11 @@ export function createEpubViewerState(filePath: string) {
 				color: ${fg} !important;
 				font-family: ${settings.fontFamily};
 				font-size: ${settings.fontSize}px !important;
+			}
+			body {
+				max-width: ${maxWidth};
+				margin-left: auto !important;
+				margin-right: auto !important;
 			}
 			p, li, blockquote, dd {
 				line-height: ${settings.lineSpacing};
@@ -142,6 +149,23 @@ export function createEpubViewerState(filePath: string) {
 		if (!renderer) return;
 		renderer.setStyles?.(buildReaderCSS());
 		renderer.setAttribute('flow', 'scrolled');
+		renderer.setAttribute('max-inline-size', `${settings.contentWidth}px`);
+
+		const isMobile = typeof window !== 'undefined' && window.innerWidth <= 640;
+		const contents = renderer.getContents?.();
+		if (contents?.[0]?.doc?.body) {
+			const body = contents[0].doc.body;
+			if (isMobile) {
+				body.style.maxWidth = '100%';
+				body.style.margin = '0';
+			} else if (settings.contentWidth > 0) {
+				body.style.maxWidth = `${settings.contentWidth}px`;
+				body.style.margin = '0 auto';
+			} else {
+				body.style.maxWidth = 'none';
+				body.style.margin = '0';
+			}
+		}
 	}
 
 	// ─── Core: init + open ────────────────────────────────────────────────────
@@ -184,11 +208,56 @@ export function createEpubViewerState(filePath: string) {
 			// Set scrolled flow + initial styles right away
 			(viewEl as any).renderer?.setAttribute('flow', 'scrolled');
 			applyStyles();
+			setupIframeKeyboardCapture();
 		} catch (e: any) {
 			console.error('EPUB open error:', e);
 			ui.errorMsg = e?.message ?? 'Failed to open EPUB';
 		} finally {
 			ui.isLoading = false;
+		}
+	}
+
+	function setupIframeKeyboardCapture() {
+		const trySetup = () => {
+			const renderer = (viewEl as any).renderer;
+			if (!renderer) return false;
+
+			const contents = renderer.getContents?.();
+			if (!contents?.length) return false;
+
+			for (const c of contents) {
+				if (c?.doc) {
+					const win = c.doc.defaultView;
+					if (!win) continue;
+
+					c.doc.addEventListener('keydown', (e: Event) => {
+						const ke = e as KeyboardEvent;
+						if (ke.key === 'Escape' || ke.key === 'Tab') {
+							e.stopPropagation();
+							e.preventDefault();
+							const parentWin = win.parent || win;
+							parentWin.dispatchEvent(new KeyboardEvent('keydown', {
+								key: ke.key,
+								code: ke.code,
+								ctrlKey: ke.ctrlKey,
+								metaKey: ke.metaKey,
+								shiftKey: ke.shiftKey,
+								bubbles: true,
+								cancelable: true,
+							}));
+						}
+					});
+				}
+			}
+			return true;
+		};
+
+		if (!trySetup()) {
+			setTimeout(() => {
+				if (!trySetup()) {
+					setTimeout(trySetup, 1000);
+				}
+			}, 1000);
 		}
 	}
 
@@ -230,6 +299,14 @@ export function createEpubViewerState(filePath: string) {
 		(viewEl as any)?.goToFraction(frac);
 	}
 
+	function nextChapter() {
+		(viewEl as any)?.next();
+	}
+
+	function prevChapter() {
+		(viewEl as any)?.prev();
+	}
+
 	// ─── Settings: font, size, spacing, dark mode ─────────────────────────────
 
 	function setFont(fontValue: string) {
@@ -244,6 +321,11 @@ export function createEpubViewerState(filePath: string) {
 
 	function setLineSpacing(val: number) {
 		settings.lineSpacing = val;
+		applyStyles();
+	}
+
+	function setContentWidth(val: number) {
+		settings.contentWidth = Math.max(200, Math.min(1200, val));
 		applyStyles();
 	}
 
@@ -365,11 +447,14 @@ export function createEpubViewerState(filePath: string) {
 		// Navigation
 		goTo,
 		goToFraction,
+		nextChapter,
+		prevChapter,
 
 		// Settings
 		setFont,
 		setFontSize,
 		setLineSpacing,
+		setContentWidth,
 		toggleDark,
 
 		// Search

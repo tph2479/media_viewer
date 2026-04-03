@@ -41,6 +41,10 @@
 		}
 	}
 
+	function onContainerKeydown(e: KeyboardEvent) {
+		onKeydown(e);
+	}
+
 	async function handleSearchSubmit(e: SubmitEvent) {
 		e.preventDefault();
 		await ctrl.runSearch(search.query);
@@ -54,6 +58,7 @@
 	class="epub-root"
 	class:dark={settings.isDark}
 	onmousemove={ctrl.showControls}
+	onclick={() => containerEl?.focus()}
 	role="application"
 	aria-label="EPUB Reader"
 >
@@ -154,6 +159,19 @@
 				<button onclick={() => ctrl.setFontSize(settings.fontSize + 1)}>A+</button>
 			</div>
 
+			<!-- Content width -->
+			<div class="font-size-group width-group" title="Content width">
+				<button onclick={() => ctrl.setContentWidth(Math.max(200, settings.contentWidth - 100))}>W−</button>
+				<span>{settings.contentWidth > 0 ? settings.contentWidth + 'px' : 'Auto'}</span>
+				<button onclick={() => ctrl.setContentWidth(Math.min(1200, settings.contentWidth + 100))}>W+</button>
+			</div>
+
+			<!-- Chapter navigation -->
+			<div class="font-size-group" title="Chapter">
+				<button onclick={() => ctrl.prevChapter()} aria-label="Previous chapter">‹</button>
+				<button onclick={() => ctrl.nextChapter()} aria-label="Next chapter">›</button>
+			</div>
+
 			<!-- Search toggle -->
 			<button
 				class="icon-btn"
@@ -248,7 +266,15 @@
 	{/if}
 
 	<!-- ── Book renderer ────────────────────────────────────────────────── -->
-	<div bind:this={containerEl} class="reader-container"></div>
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div 
+		bind:this={containerEl} 
+		class="reader-container" 
+		onclick={(e) => e.currentTarget.focus()}
+		onkeydown={onContainerKeydown}
+		tabindex="0"
+	></div>
 
 	<!-- ── Reading progress bar ─────────────────────────────────────────── -->
 	<div class="progress-bar-track">
@@ -658,6 +684,9 @@
 			display: none;
 		}
 		.select-wrapper {
+			display: none;
+		}
+		.width-group {
 			display: none;
 		}
 		.icon-btn {
