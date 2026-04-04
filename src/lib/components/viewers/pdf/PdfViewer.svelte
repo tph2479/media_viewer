@@ -18,6 +18,16 @@
 	const pdf = createPdfController(pdfPath);
 	const s = pdf.state;
 
+	let searchInput: HTMLInputElement | undefined = $state();
+	
+	$effect(() => {
+		if (s.isSearchSidebarOpen) {
+			tick().then(() => {
+				searchInput?.focus();
+			});
+		}
+	});
+
 	$effect(() => {
 		if (s.pdfScrollContainer && s.viewerContainer && s.pdfjsViewer && !s.viewerApp) {
 			pdf.initViewerApp();
@@ -154,7 +164,7 @@
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div class="fixed inset-0 z-[399]" onclick={() => { s.isSearchSidebarOpen = false; s.isSearching = false; }}></div>
-<div class="fixed inset-y-0 right-0 w-80 sm:w-96 bg-zinc-950/95 border-l border-white/10 backdrop-blur-xl shadow-2xl z-[400] overflow-hidden flex flex-col animate-in slide-in-from-right duration-300">
+<div class="fixed inset-y-0 left-0 w-80 sm:w-96 bg-zinc-950/95 border-r border-white/10 backdrop-blur-xl shadow-2xl z-[400] overflow-hidden flex flex-col animate-in slide-in-from-left duration-300">
 	<div class="p-4 border-b border-white/10 bg-zinc-950/80 backdrop-blur-md shrink-0 flex flex-col gap-3">
 		<div class="flex items-center justify-between">
 			<h2 class="text-white font-bold text-lg">Tìm kiếm PDF</h2>
@@ -165,6 +175,7 @@
 		<div class="flex gap-2 items-center">
 			<div class="relative flex-1">
 				<input
+					bind:this={searchInput}
 					type="text"
 					bind:value={s.searchQuery}
 					placeholder="Nhập từ khoá..."
@@ -234,6 +245,13 @@
 			<button class="btn rounded-xl w-12 h-12 min-h-0 p-0 bg-zinc-900/90 hover:bg-zinc-800 text-white border border-white/10 backdrop-blur-xl shadow-2xl pointer-events-auto transition-all" aria-label="Toggle fit" onclick={() => { pdf.toggleFit(); }}>
 				<Maximize2 class="h-5 w-5" />
 			</button>
+			<button class="btn rounded-xl w-12 h-12 min-h-0 p-0 bg-zinc-900/90 hover:bg-zinc-800 text-white border border-white/10 backdrop-blur-xl shadow-2xl pointer-events-auto transition-all" onclick={() => s.isDarkMode = !s.isDarkMode}>
+				{#if s.isDarkMode}
+					<Sun class="h-5 w-5" />
+				{:else}
+					<Moon class="h-5 w-5" />
+				{/if}
+			</button>
 			{#if !s.isTocSidebarOpen}
 				<button class="btn rounded-xl w-12 h-12 min-h-0 p-0 bg-zinc-900/90 hover:bg-zinc-800 text-white border border-white/10 backdrop-blur-xl shadow-2xl pointer-events-auto transition-all" aria-label="TOC" onclick={() => s.isTocSidebarOpen = true}>
 					<List class="h-5 w-5" />
@@ -244,13 +262,6 @@
 					<Search class="h-5 w-5" />
 				</button>
 			{/if}
-			<button class="btn rounded-xl w-12 h-12 min-h-0 p-0 bg-zinc-900/90 hover:bg-zinc-800 text-white border border-white/10 backdrop-blur-xl shadow-2xl pointer-events-auto transition-all" onclick={() => s.isDarkMode = !s.isDarkMode}>
-				{#if s.isDarkMode}
-					<Sun class="h-5 w-5" />
-				{:else}
-					<Moon class="h-5 w-5" />
-				{/if}
-			</button>
 			<button aria-label="Close (ESC)" class="btn rounded-xl w-12 h-12 min-h-0 p-0 bg-zinc-900/90 hover:bg-zinc-800 text-white border border-white/10 backdrop-blur-xl shadow-2xl pointer-events-auto transition-all hover:scale-110" onclick={closePdf}>
 				<X class="h-6 w-6" />
 			</button>
@@ -273,69 +284,71 @@
 			</div>
 
 			<!-- Page Jump & Progress -->
-			<div class="flex-1 flex flex-col items-center gap-2 mt-1 bg-zinc-900/90 py-4 rounded-xl border border-white/10 shadow-2xl pointer-events-auto w-12 backdrop-blur-xl overflow-hidden px-0">
+			<div class="flex-1 flex flex-col items-center gap-2 mt-1 bg-zinc-900/90 py-4 rounded-xl border border-white/10 shadow-2xl pointer-events-auto w-12 backdrop-blur-xl px-0 relative">
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<div
 					bind:this={s.seekBarElement}
 					class="flex-1 w-3 sm:w-4 bg-white/10 rounded-full overflow-hidden border border-white/5 shadow-inner my-1 cursor-pointer group hover:bg-white/20 transition-colors relative"
 					onmousedown={pdf.handleSeekBarMouseDown}
 				>
-					<div class="absolute top-0 left-0 w-full rounded-full transition-all duration-75 ease-out origin-top z-10 pointer-events-none" style="height: {s.smoothPercent}%; background-color: var(--color-primary-500);"></div>
+					<div class="absolute top-0 left-0 w-full rounded-full transition-all duration-75 ease-out origin-top z-10 pointer-events-none" style="height: {s.smoothPercent}%; background-color: white;"></div>
 					{#if s.isDraggingSeek && s.hasMoved}
 						<div class="absolute top-0 left-0 w-full bg-white/30 rounded-full origin-top z-20 pointer-events-none" style="height: {s.previewPercent}%"></div>
 					{/if}
 				</div>
-				<div class="flex flex-col items-center gap-1 mt-auto pb-1">
+				<div class="flex flex-col items-center gap-1 mt-auto">
 					<span class="text-sm font-mono font-black text-white/90">
 						{Math.round(s.isDraggingSeek && s.hasMoved ? s.previewPercent : s.smoothPercent)}%
 					</span>
-					<button
-						class="btn btn-ghost btn-circle w-10 h-10 min-h-0 p-0 text-white hover:bg-white/10 transition-all mt-1 flex items-center justify-center"
-						onclick={(e) => { e.stopPropagation(); s.isJumpPopupOpen = !s.isJumpPopupOpen; }}
-					>
-						<Hash class="h-5 w-5" />
-					</button>
+					<div class="relative">
+						<button
+							class="btn btn-ghost btn-circle w-10 h-10 min-h-0 p-0 text-white hover:bg-white/10 transition-all flex items-center justify-center"
+							onclick={(e) => { e.stopPropagation(); s.isJumpPopupOpen = !s.isJumpPopupOpen; }}
+						>
+							<Hash class="h-5 w-5" />
+						</button>
+
+						<!-- Jump Popup -->
+						{#if s.isJumpPopupOpen}
+							<div class="absolute right-full top-0 mr-4 bg-zinc-900/90 px-4 py-0 h-14 rounded-xl border border-white/10 backdrop-blur-xl shadow-2xl pointer-events-auto text-right flex items-center justify-center font-mono font-black text-sm focus:outline-none animate-in fade-in slide-in-from-right-4 duration-200 whitespace-nowrap">
+								<span
+									role="textbox"
+									aria-label="Page number"
+									tabindex="0"
+									contenteditable="true"
+									inputmode="numeric"
+									class="text-white/90 focus:outline-none hover:bg-white/5 rounded px-1 transition-colors min-w-[1ch]"
+									onfocus={(e) => {
+										s.isEditingPage = true;
+										const range = document.createRange();
+										range.selectNodeContents(e.currentTarget);
+										const sel = window.getSelection();
+										sel?.removeAllRanges();
+										sel?.addRange(range);
+									}}
+									onkeydown={(e) => {
+										if (e.key === 'Enter') {
+											e.preventDefault();
+											pdf.handlePageInput(e.currentTarget.innerText);
+											s.isJumpPopupOpen = false;
+											e.currentTarget.blur();
+										}
+										e.stopPropagation();
+									}}
+									onblur={(e) => {
+										s.isEditingPage = false;
+										s.isJumpPopupOpen = false;
+										e.currentTarget.innerText = String(s.currentPageIndex + 1);
+									}}
+								>
+									{s.currentPageIndex + 1}
+								</span>
+								<span class="text-white/40 ml-2">/ {s.numPages}</span>
+							</div>
+						{/if}
+					</div>
 				</div>
 			</div>
-
-			<!-- Jump Popup -->
-			{#if s.isJumpPopupOpen}
-				<div class="bg-zinc-900/90 px-4 py-2 rounded-xl border border-white/10 backdrop-blur-xl shadow-2xl pointer-events-auto text-right min-h-[3rem] flex items-center justify-center font-mono font-black text-sm focus:outline-none animate-in fade-in slide-in-from-right-2 duration-200">
-					<span
-						role="textbox"
-						aria-label="Page number"
-						tabindex="0"
-						contenteditable="true"
-						inputmode="numeric"
-						class="text-white/90 focus:outline-none hover:bg-white/5 rounded px-1 transition-colors min-w-[1ch]"
-						onfocus={(e) => {
-							s.isEditingPage = true;
-							const range = document.createRange();
-							range.selectNodeContents(e.currentTarget);
-							const sel = window.getSelection();
-							sel?.removeAllRanges();
-							sel?.addRange(range);
-						}}
-						onkeydown={(e) => {
-							if (e.key === 'Enter') {
-								e.preventDefault();
-								pdf.handlePageInput(e.currentTarget.innerText);
-								s.isJumpPopupOpen = false;
-								e.currentTarget.blur();
-							}
-							e.stopPropagation();
-						}}
-						onblur={(e) => {
-							s.isEditingPage = false;
-							s.isJumpPopupOpen = false;
-							e.currentTarget.innerText = String(s.currentPageIndex + 1);
-						}}
-					>
-						{s.currentPageIndex + 1}
-					</span>
-					<span class="text-white/40 ml-2">/ {s.numPages}</span>
-				</div>
-			{/if}
 		</div>
 	</div>
 

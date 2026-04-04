@@ -21,6 +21,7 @@ export type TocItem = {
 export type SearchResult = {
 	cfi: string;
 	excerpt: string;
+	index: number;
 	label?: string;
 };
 
@@ -138,33 +139,62 @@ export function createEpubViewerState(filePath: string) {
 
 	// ── Internal references (not reactive) ────────────────────────────────────
 	let viewEl: HTMLElement | null = null; // foliate-view DOM element
+	let lastScrollTime = 0;
+	const SCROLL_COOLDOWN = 600; // ms to prevent rapid skipping
 	let containerEl: HTMLElement | null = null; // wrapper div
 
 	// ─── Helpers ──────────────────────────────────────────────────────────────
 
 	/** CSS injected into the book renderer on every settings change */
 	function buildReaderCSS() {
-		let bg = 'oklch(100% 0 none)';
-		let fg = 'oklch(18.22% 0 none)';
-		let linkColor = 'oklch(57.05% 0.21 258.14deg)';
+		let bg = '#ffffff';
+		let fg = '#1a1a1a';
+		let linkColor = '#5755d9';
 
 		const effectiveTheme = settings.theme === 'system' 
 			? (settings.isDark ? 'dark' : 'light') 
 			: settings.theme;
 
 		if (effectiveTheme === 'dark') {
-			bg = 'oklch(32.5% 0 none)';
-			fg = 'oklch(100% 0 none)';
-			linkColor = 'oklch(62.99% 0.18 255.56deg)';
+			bg = '#333333';
+			fg = '#eeeeee';
+			linkColor = '#9b99ff';
 		} else if (effectiveTheme === 'black') {
-			bg = 'oklch(0% 0 none)';
-			fg = 'oklch(100% 0 none)';
-			linkColor = 'oklch(62.99% 0.18 255.56deg)';
+			bg = '#000000';
+			fg = '#ffffff';
+			linkColor = '#9b99ff';
 		} else if (effectiveTheme === 'sepia') {
-			bg = 'oklch(91.56% 0.04 81.33deg)';
-			fg = 'oklch(25% 0.02 81.33deg)';
-			linkColor = 'oklch(35.5% 0.05 60deg)';
+			bg = '#f4ecd8';
+			fg = '#5b4636';
+			linkColor = '#8b5a2b';
 		}
+
+		const isDefaultTheme = effectiveTheme === 'light';
+		// Nuclear approach: target tags with high specificity if not in light mode
+		const textTags = 'p, span, div, h1, h2, h3, h4, h5, h6, li, blockquote, dd, dt, table, tr, td, th, article, section, header, footer, main, caption, em, strong, i, b, u, s, del, ins, q';
+		const chainedTags = textTags.split(', ').map(t => `html body ${t}`).join(', ');
+		
+		// Target pseudo-elements for common block tags (p, div, li) to catch drop caps/initial lines
+		const pseudoTags = ['p', 'div', 'li', 'span'].map(t => `html body ${t}::first-letter, html body ${t}::first-line`).join(', ');
+
+		const aggressiveOverrides = isDefaultTheme ? '' : `
+			${chainedTags} {
+				color: ${fg} !important;
+				background-color: transparent !important;
+			}
+			${pseudoTags} {
+				color: inherit !important;
+				background-color: transparent !important;
+			}
+			html body a, html body a *, html body :link, html body :visited {
+				color: ${linkColor} !important;
+				background-color: transparent !important;
+			}
+			html body mark, html body mark * {
+				color: #000000 !important;
+				background-color: #ffff00 !important; 
+			}
+		`;
 
 		return `
 			html {
@@ -189,6 +219,7 @@ export function createEpubViewerState(filePath: string) {
 			a { color: ${linkColor}; }
 			img { max-width: 100%; height: auto; }
 			pre { white-space: pre-wrap !important; }
+			${aggressiveOverrides}
 		`;
 	}
 
@@ -328,7 +359,40 @@ export function createEpubViewerState(filePath: string) {
 	function onLoad() {
 		applyStyles();
 		setupIframeKeyboardCapture();
+		setupIframeWheelCapture();
 		cleanupResize = setupResizeHandler();
+	}
+
+	function setupIframeWheelCapture() {
+		const iframe = viewEl?.querySelector('iframe');
+		const doc = iframe?.contentDocument;
+		if (doc) {
+			doc.addEventListener('wheel', handleWheel, { passive: true });
+		}
+	}
+
+	function handleWheel(e: WheelEvent) {
+		const view = viewEl as any;
+		const renderer = view?.renderer;
+		if (!renderer) return;
+
+		const now = Date.now();
+		if (now - lastScrollTime < SCROLL_COOLDOWN) return;
+
+		// Ignore very small scroll movements (touchpads etc)
+		if (Math.abs(e.deltaY) < 40) return;
+
+		// Since we use 'scrolled' mode, we only advance section if at the very end/start
+		const atSectionBottom = renderer.viewSize - renderer.end <= 20;
+		const atSectionTop = renderer.start <= 20;
+
+		if (e.deltaY > 0 && atSectionBottom) {
+			view.next();
+			lastScrollTime = now;
+		} else if (e.deltaY < 0 && atSectionTop) {
+			view.prev();
+			lastScrollTime = now;
+		}
 	}
 
 	function onRelocate(e: Event) {
@@ -455,6 +519,19 @@ export function createEpubViewerState(filePath: string) {
 
 	async function runSearch(query: string) {
 		if (!viewEl || !query.trim()) return;
+
+		// Smart Re-search: If query is same and we have results, just filter out passed sections
+		if (query === search.query && search.results.length > 0) {
+			const currentIndex = (viewEl as any).renderer.getContents()?.[0]?.index ?? 0;
+			const newResults = search.results.filter(r => r.index >= currentIndex);
+			
+			if (newResults.length > 0 && newResults.length < search.results.length) {
+				search.results = newResults;
+				search.currentIndex = -1;
+				return; // Instant update
+			}
+		}
+
 		search.query = query;
 		search.results = [];
 		search.currentIndex = -1;
@@ -464,7 +541,8 @@ export function createEpubViewerState(filePath: string) {
 		searchAbortController = new AbortController();
 
 		try {
-			const iter = (viewEl as any).search({ query });
+			const currentIndex = (viewEl as any).renderer.getContents()?.[0]?.index ?? 0;
+			const iter = (viewEl as any).search({ query, startIndex: currentIndex });
 			for await (const result of iter) {
 				if (searchAbortController.signal.aborted) break;
 				if (result === 'done') break;
@@ -482,6 +560,7 @@ export function createEpubViewerState(filePath: string) {
 						search.results.push({
 							cfi: sub.cfi,
 							excerpt: excerptHtml,
+							index: sub.index,
 							label,
 						});
 					}
@@ -504,9 +583,15 @@ export function createEpubViewerState(filePath: string) {
 			searchAbortController.abort();
 		}
 		(viewEl as any)?.clearSearch();
-		search.results = [];
 		search.query = '';
+		search.results = [];
 		search.currentIndex = -1;
+		search.isSearching = false;
+		search.progress = 0;
+	}
+
+	function stopSearch() {
+		searchAbortController?.abort();
 		search.isSearching = false;
 		search.progress = 0;
 	}
@@ -602,6 +687,7 @@ export function createEpubViewerState(filePath: string) {
 		clearSearch,
 		nextSearchResult,
 		prevSearchResult,
+		stopSearch,
 		handlePageKey,
 
 		// UI

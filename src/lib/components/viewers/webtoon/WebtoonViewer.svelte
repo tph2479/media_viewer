@@ -3,8 +3,7 @@
 	import { isVideoFile, type ImageFile } from '$lib/utils/utils';
 	import { cacheVersion } from '$lib/stores/cache.svelte';
 	import { createWebtoonController } from './webtoonViewer.svelte.ts';
-	import { X, Maximize2, Minimize2, ZoomIn, ZoomOut, ChevronUp, ChevronDown, ArrowLeft, ArrowRight, RotateCw } from 'lucide-svelte';
-	import { Tooltip, Portal } from '@skeletonlabs/skeleton-svelte';
+	import { X, Maximize2, ZoomIn, ZoomOut, Hash } from 'lucide-svelte';
 
 	let {
 		isWebtoonMode = $bindable(),
@@ -172,72 +171,34 @@
 		}
 	}}
 >
-	<!-- Top Title Bar -->
-	<div class="fixed top-4 right-4 sm:right-6 pointer-events-none z-[110] transition-all duration-300 {s.controlsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'}">
-		<div class="flex items-start justify-end">
+	<!-- Top Controls -->
+	<div class="fixed top-4 right-4 sm:right-6 pointer-events-none z-[310] transition-all duration-300 {s.controlsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'}">
+		<div class="flex items-center justify-end gap-2">
+			<button class="btn rounded-xl w-12 h-12 min-h-0 p-0 bg-zinc-900/90 hover:bg-zinc-800 text-white border border-white/10 backdrop-blur-xl shadow-2xl pointer-events-auto transition-all" aria-label="Toggle fit" onclick={(e) => { e.stopPropagation(); ctrl.toggleWebtoonFit(); }}>
+				<Maximize2 class="h-5 w-5" />
+			</button>
 			<button aria-label="Close (ESC)" class="btn rounded-xl w-12 h-12 min-h-0 p-0 bg-zinc-900/90 hover:bg-zinc-800 text-white border border-white/10 backdrop-blur-xl shadow-2xl pointer-events-auto transition-all hover:scale-110" onclick={(e) => { e.stopPropagation(); closeWebtoon(); }}>
 				<X class="h-6 w-6" />
 			</button>
 		</div>
 	</div>
 
-	<div class="fixed top-20 right-4 sm:right-6 bottom-2 flex flex-col items-end gap-2 z-[110] pointer-events-none transition-all duration-300 {s.controlsVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2'}">
+	<!-- Side Controls -->
+	<div class="fixed top-24 right-4 sm:right-6 bottom-4 flex flex-col items-end gap-2 z-[310] pointer-events-none transition-all duration-300 {s.controlsVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2'}">
 		<div class="flex flex-col items-end gap-2 pointer-events-auto h-full">
-			<Tooltip openDelay={0} closeDelay={0} positioning={{ placement: 'left' }}>
-				<Tooltip.Trigger>
-					<button
-						aria-label="Toggle Fit Mode (Z Key)"
-						class="btn rounded-xl w-12 h-12 min-h-0 p-0 bg-zinc-900/90 hover:bg-zinc-800 text-white border border-white/10 backdrop-blur-xl shadow-2xl"
-						onclick={(e) => { e.stopPropagation(); ctrl.toggleWebtoonFit(); }}
-						onmousedown={(e) => e.preventDefault()}
-					>
-						<Maximize2 class="h-6 w-6" />
-					</button>
-				</Tooltip.Trigger>
-				<Portal>
-					<Tooltip.Positioner>
-						<Tooltip.Content class="preset-filled-surface-950-50 text-xs px-3 py-1.5 rounded-md shadow-xl">
-							Toggle Fit Mode (Z Key)
-						</Tooltip.Content>
-					</Tooltip.Positioner>
-				</Portal>
-			</Tooltip>
-
-			<div class="flex flex-col bg-zinc-900/90 rounded-xl backdrop-blur-xl overflow-hidden sm:flex border border-white/10 shadow-2xl mt-1 w-12">
-				<Tooltip openDelay={0} closeDelay={0} positioning={{ placement: 'left' }}>
-					<Tooltip.Trigger>
-						<button aria-label="Zoom In" class="btn btn-ghost btn-sm h-12 w-12 p-0 text-white rounded-none border-b border-white/10" onclick={(e) => { e.stopPropagation(); ctrl.setWebtoonZoom(Math.min(500, s.webtoonZoomLevel * 1.15)); }} onmousedown={(e) => e.preventDefault()}>
-							<ZoomIn class="h-6 w-6 m-auto" />
-						</button>
-					</Tooltip.Trigger>
-					<Portal>
-						<Tooltip.Positioner>
-							<Tooltip.Content class="preset-filled-surface-950-50 text-xs px-3 py-1.5 rounded-md shadow-xl">
-								Zoom In (+)
-							</Tooltip.Content>
-						</Tooltip.Positioner>
-					</Portal>
-				</Tooltip>
-				<span class="py-2 text-xs sm:text-sm font-mono font-black text-white flex items-center justify-center bg-white/5 w-12 px-0 tracking-tighter" aria-label="Current Zoom">
+			<div class="flex flex-col bg-zinc-900/90 rounded-xl backdrop-blur-xl border border-white/10 shadow-2xl mt-1 w-12 overflow-hidden">
+				<button aria-label="Zoom In" class="btn btn-ghost btn-sm h-12 w-12 p-0 text-white rounded-none border-b border-white/10" onclick={(e) => { e.stopPropagation(); ctrl.setWebtoonZoom(Math.min(500, s.webtoonZoomLevel * 1.15)); }} onmousedown={(e) => e.preventDefault()}>
+					<ZoomIn class="h-5 w-5 m-auto" />
+				</button>
+				<span class="py-2 text-[10px] font-mono font-black text-white text-center bg-white/5 w-12" aria-label="Current Zoom">
 					{Math.round(s.webtoonZoomLevel * 100)}%
 				</span>
-				<Tooltip openDelay={0} closeDelay={0} positioning={{ placement: 'left' }}>
-					<Tooltip.Trigger>
-						<button aria-label="Zoom Out" class="btn btn-ghost btn-sm h-12 w-12 p-0 text-white rounded-none border-t border-white/10" onclick={(e) => { e.stopPropagation(); ctrl.setWebtoonZoom(Math.max(0.001, s.webtoonZoomLevel / 1.15)); }} onmousedown={(e) => e.preventDefault()}>
-							<ZoomOut class="h-6 w-6 m-auto" />
-						</button>
-					</Tooltip.Trigger>
-					<Portal>
-						<Tooltip.Positioner>
-							<Tooltip.Content class="preset-filled-surface-950-50 text-xs px-3 py-1.5 rounded-md shadow-xl">
-								Zoom Out (-)
-							</Tooltip.Content>
-						</Tooltip.Positioner>
-					</Portal>
-				</Tooltip>
+				<button aria-label="Zoom Out" class="btn btn-ghost btn-sm h-12 w-12 p-0 text-white rounded-none border-t border-white/10" onclick={(e) => { e.stopPropagation(); ctrl.setWebtoonZoom(Math.max(0.001, s.webtoonZoomLevel / 1.15)); }} onmousedown={(e) => e.preventDefault()}>
+					<ZoomOut class="h-5 w-5 m-auto" />
+				</button>
 			</div>
 
-			<div class="flex-1 flex flex-col items-center gap-2 mt-1 bg-zinc-900/90 py-4 rounded-xl border border-white/10 shadow-2xl pointer-events-auto w-12 backdrop-blur-xl overflow-hidden px-0">
+			<div class="flex-1 flex flex-col items-center gap-2 mt-1 bg-zinc-900/90 py-4 rounded-xl border border-white/10 shadow-2xl pointer-events-auto w-12 backdrop-blur-xl px-0 relative">
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<div
@@ -245,87 +206,75 @@
 					class="flex-1 w-3 sm:w-4 bg-white/10 rounded-full overflow-hidden border border-white/5 shadow-inner my-1 cursor-pointer group hover:bg-white/20 transition-colors relative"
 					onmousedown={ctrl.handleSeekBarMouseDown}
 				>
-					<!-- Current Progress -->
-					<div
-						class="absolute top-0 left-0 w-full rounded-full transition-all duration-75 ease-out origin-top z-10"
-						style="height: {s.smoothPercent}%; background-color: var(--color-primary-500);"
-					></div>
-
-					<!-- Drag Preview (Only shown when really dragging) -->
+					<div class="absolute top-0 left-0 w-full rounded-full transition-all duration-75 ease-out origin-top z-10 pointer-events-none" style="height: {s.smoothPercent}%; background-color: white;"></div>
 					{#if s.isDraggingSeek && s.hasMoved}
-						<div
-							class="absolute top-0 left-0 w-full bg-white/30 rounded-full origin-top z-20"
-							style="height: {s.previewPercent}%"
-						></div>
+						<div class="absolute top-0 left-0 w-full bg-white/30 rounded-full origin-top z-20 pointer-events-none" style="height: {s.previewPercent}%"></div>
 					{/if}
 				</div>
-				<div class="flex flex-col items-center gap-1 mt-auto pb-1">
-					<span class="text-sm sm:text-base font-mono font-black text-white/90">
+				<div class="flex flex-col items-center gap-1 mt-auto">
+					<span class="text-sm font-mono font-black text-white/90">
 						{Math.round(s.isDraggingSeek && s.hasMoved ? s.previewPercent : s.smoothPercent)}%
 					</span>
-					<!-- Jump to Page Trigger Icon -->
-					<button
-						aria-label="Edit Page Number"
-						class="btn btn-ghost btn-circle w-10 h-10 min-h-0 p-0 text-white hover:bg-white/10 transition-all mt-1 flex items-center justify-center"
-						onclick={(e) => { e.stopPropagation(); s.isJumpPopupOpen = !s.isJumpPopupOpen; }}
-						onmousedown={(e) => e.preventDefault()}
-					>
-						<RotateCw class="h-5 w-5" />
-					</button>
+					<div class="relative">
+						<button
+							aria-label="Edit Page Number"
+							class="btn btn-ghost btn-circle w-10 h-10 min-h-0 p-0 text-white hover:bg-white/10 transition-all flex items-center justify-center"
+							onclick={(e) => { e.stopPropagation(); s.isJumpPopupOpen = !s.isJumpPopupOpen; }}
+							onmousedown={(e) => e.preventDefault()}
+						>
+							<Hash class="h-5 w-5" />
+						</button>
+
+						<!-- Jump Popup -->
+						{#if s.isJumpPopupOpen}
+							<div class="absolute right-full top-0 mr-4 bg-zinc-900/90 px-4 py-0 h-14 rounded-xl border border-white/10 backdrop-blur-xl shadow-2xl pointer-events-auto text-right flex items-center justify-center font-mono font-black text-sm focus:outline-none animate-in fade-in slide-in-from-right-4 duration-200 whitespace-nowrap">
+								<span
+									role="textbox"
+									aria-label="Page number"
+									tabindex="0"
+									contenteditable="true"
+									inputmode="numeric"
+									class="text-white/90 focus:outline-none hover:bg-white/5 rounded px-1 transition-colors min-w-[1ch]"
+									onfocus={(e) => {
+										s.isEditingPage = true;
+										if (s.hideTimerId) {
+											clearTimeout(s.hideTimerId);
+											s.hideTimerId = null;
+										}
+										const range = document.createRange();
+										range.selectNodeContents(e.currentTarget);
+										const sel = window.getSelection();
+										sel?.removeAllRanges();
+										sel?.addRange(range);
+									}}
+									onkeydown={(e) => {
+										if (e.key === 'Enter') {
+											e.preventDefault();
+											ctrl.handlePageInput(e.currentTarget.innerText);
+											s.isJumpPopupOpen = false;
+											e.currentTarget.blur();
+										}
+										e.stopPropagation();
+									}}
+									onblur={(e) => {
+										s.isEditingPage = false;
+										setTimeout(() => {
+											if (!s.isEditingPage) {
+												s.isJumpPopupOpen = false;
+												s.webtoonScrollContainer?.focus();
+											}
+										}, 100);
+										e.currentTarget.innerText = String(s.currentImageIndex + 1);
+									}}
+								>
+									{s.currentImageIndex + 1}
+								</span>
+								<span class="text-white/40 ml-2">/ {s.totalImages}</span>
+							</div>
+						{/if}
+					</div>
 				</div>
 			</div>
-
-			<!-- Editable Page indicator: Popup mode -->
-			{#if s.isJumpPopupOpen}
-				<div
-					class="bg-zinc-900/90 px-4 py-2 rounded-xl border border-white/10 backdrop-blur-xl shadow-2xl pointer-events-auto text-right min-h-[3rem] flex items-center justify-center font-mono font-black text-sm sm:text-base focus:outline-none animate-in fade-in slide-in-from-right-2 duration-200"
-				>
-					<span
-						    role="textbox"
-						    aria-label="Page number"
-						    tabindex="0"
-						    contenteditable="true"
-						    inputmode="numeric"
-						class="text-white/90 focus:outline-none hover:bg-white/5 rounded px-1 transition-colors min-w-[1ch]"
-						onfocus={(e) => {
-							s.isEditingPage = true;
-							if (s.hideTimerId) {
-								clearTimeout(s.hideTimerId);
-								s.hideTimerId = null;
-							}
-							const range = document.createRange();
-							range.selectNodeContents(e.currentTarget);
-							const sel = window.getSelection();
-							sel?.removeAllRanges();
-							sel?.addRange(range);
-						}}
-						onkeydown={(e) => {
-							if (e.key === 'Enter') {
-								e.preventDefault();
-								ctrl.handlePageInput(e.currentTarget.innerText);
-								s.isJumpPopupOpen = false;
-								e.currentTarget.blur();
-							}
-							e.stopPropagation();
-						}}
-						onblur={(e) => {
-							s.isEditingPage = false;
-							// If you click outside the popup, close it
-							setTimeout(() => {
-								if (!s.isEditingPage) {
-									s.isJumpPopupOpen = false;
-									s.webtoonScrollContainer?.focus();
-								}
-							}, 100);
-							// Sync back if user didn't press enter or entered invalid value
-							e.currentTarget.innerText = String(s.currentImageIndex + 1);
-						}}
-					>
-						{s.currentImageIndex + 1}
-					</span>
-					<span class="text-white/40 ml-2">/ {s.totalImages}</span>
-				</div>
-			{/if}
 		</div>
 	</div>
 

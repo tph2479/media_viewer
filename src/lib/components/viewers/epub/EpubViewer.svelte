@@ -27,8 +27,8 @@
 	let containerEl: HTMLElement;
 	let searchInputEl: HTMLInputElement = $state(undefined as unknown as HTMLInputElement);
 	let tocListEl: HTMLElement;
+	let searchResultsEl: HTMLElement;
 
-	// ── Auto-scroll TOC to current chapter ──────────────────────────────
 	$effect(() => {
 		if (ui.isTocOpen) {
 			requestAnimationFrame(() => {
@@ -36,6 +36,33 @@
 				activeBtn?.scrollIntoView({ block: 'center', behavior: 'smooth' });
 			});
 		}
+	});
+
+	// ── Auto-scroll Search to current match ─────────────────────────────
+	$effect(() => {
+		if (ui.isSearchOpen && search.currentIndex >= 0 && searchResultsEl) {
+			requestAnimationFrame(() => {
+				const selected = searchResultsEl.querySelector('li.selected');
+				selected?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+			});
+		}
+	});
+
+	// ── Grouped Search Results ──────────────────────────────────────────
+	const groupedSearch = $derived.by(() => {
+		const groups: { label: string; items: { result: SearchResult; originalIndex: number }[] }[] = [];
+		let currentGroup: { label: string; items: { result: SearchResult; originalIndex: number }[] } | null = null;
+
+		search.results.forEach((result, i) => {
+			const label = result.label || '';
+			if (!currentGroup || currentGroup.label !== label) {
+				currentGroup = { label, items: [] };
+				groups.push(currentGroup);
+			}
+			currentGroup.items.push({ result, originalIndex: i });
+		});
+
+		return groups;
 	});
 
 	// ── Lifecycle ───────────────────────────────────────────────────────
@@ -46,12 +73,19 @@
 	function onKeydown(e: KeyboardEvent) {
 		if (e.key === 'f' && (e.ctrlKey || e.metaKey)) {
 			e.preventDefault();
-			ui.isSearchOpen = !ui.isSearchOpen;
-			if (ui.isSearchOpen) setTimeout(() => searchInputEl?.focus(), 50);
+			if (ui.isSearchOpen) {
+				ui.isSearchOpen = false;
+			} else {
+				ui.isSearchOpen = true;
+				ui.isTocOpen = false;
+				setTimeout(() => searchInputEl?.focus(), 50);
+			}
 		}
 		if (e.key === 'Tab') {
+			if (ui.isSearchOpen) return;
 			e.preventDefault();
 			ui.isTocOpen = !ui.isTocOpen;
+			if (ui.isTocOpen) ui.isSearchOpen = false;
 		}
 		if (e.key === 'Escape') {
 			if (ui.isSearchOpen) {
@@ -154,7 +188,10 @@
 			<button
 				class="icon-btn"
 				class:active={ui.isTocOpen}
-				onclick={() => (ui.isTocOpen = !ui.isTocOpen)}
+				onclick={() => {
+					ui.isTocOpen = !ui.isTocOpen;
+					if (ui.isTocOpen) ui.isSearchOpen = false;
+				}}
 				title="Table of Contents"
 				aria-label="Toggle TOC"
 			>
@@ -267,7 +304,10 @@
 				class:active={ui.isSearchOpen}
 				onclick={() => {
 					ui.isSearchOpen = !ui.isSearchOpen;
-					if (ui.isSearchOpen) setTimeout(() => searchInputEl?.focus(), 50);
+					if (ui.isSearchOpen) {
+						ui.isTocOpen = false;
+						setTimeout(() => searchInputEl?.focus(), 50);
+					}
 				}}
 				title="Search (Ctrl+F)"
 				aria-label="Toggle search"
@@ -300,15 +340,33 @@
 				</button>
 			</div>
 			<form onsubmit={handleSearchSubmit} class="search-form">
-				<input
-					bind:this={searchInputEl}
-					bind:value={search.query}
-					placeholder="Search in book…"
-					aria-label="Search query"
-				/>
-				<button type="submit" disabled={search.isSearching}>
-					{search.isSearching ? '…' : 'Go'}
-				</button>
+				<div class="search-input-wrapper">
+					<input
+						bind:this={searchInputEl}
+						bind:value={search.query}
+						placeholder="Search in book…"
+						aria-label="Search query"
+					/>
+					{#if search.query}
+						<button 
+							type="button" 
+							class="clear-query-btn" 
+							onclick={() => { search.query = ''; searchInputEl?.focus(); }}
+							aria-label="Clear query"
+						>
+							<X size={14} />
+						</button>
+					{/if}
+				</div>
+				{#if search.isSearching}
+					<button type="button" onclick={ctrl.stopSearch} class="stop-btn">
+						Stop
+					</button>
+				{:else}
+					<button type="submit">
+						Search
+					</button>
+				{/if}
 			</form>
 
 			{#if search.isSearching}
@@ -328,19 +386,25 @@
 					</button>
 					<button onclick={ctrl.clearSearch} aria-label="Clear results" class="clear-btn">Clear</button>
 				</div>
-				<ol class="search-results">
-					{#each search.results as result, i (result.cfi)}
-						<li class:selected={i === search.currentIndex}>
-							<button
-								onclick={() => {
-									search.currentIndex = i;
-									ctrl.goTo(result.cfi);
-								}}
-							>
-								<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-								{@html result.excerpt}
-							</button>
-						</li>
+				<ol class="search-results" bind:this={searchResultsEl}>
+					{#each groupedSearch as group}
+						{#if group.label && (groupedSearch.length > 1 || group.label !== '')}
+							<li class="search-chapter-header">{group.label}</li>
+						{/if}
+						{#each group.items as { result, originalIndex }}
+							<li class:selected={originalIndex === search.currentIndex}>
+								<button
+									onclick={() => {
+										search.currentIndex = originalIndex;
+										ctrl.goTo(result.cfi);
+										ui.isSearchOpen = false;
+									}}
+								>
+									<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+									<div class="search-excerpt">{@html result.excerpt}</div>
+								</button>
+							</li>
+						{/each}
 					{/each}
 				</ol>
 			{:else if !search.isSearching && search.query}
@@ -734,14 +798,15 @@
 	.search-panel {
 		position: absolute;
 		top: 0;
-		right: 0;
+		left: 0;
 		bottom: 0;
 		width: clamp(280px, 35%, 380px);
 		background: oklch(100% 0 none);
 		z-index: 70;
 		display: flex;
 		flex-direction: column;
-		box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+		box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+		animation: slide-in 0.2s ease;
 	}
 	.dark .search-panel {
 		background: oklch(25.62% 0 none);
@@ -767,12 +832,37 @@
 	}
 	.search-form input {
 		flex: 1;
+		width: 100%;
 		padding: 0.4rem 0.6rem;
+		padding-right: 2rem;
 		border: 1px solid oklch(71.22% 0 none);
 		border-radius: 6px;
 		background: transparent;
 		color: inherit;
 		font-size: 0.875rem;
+	}
+	.search-input-wrapper {
+		position: relative;
+		flex: 1;
+		display: flex;
+		align-items: center;
+	}
+	.clear-query-btn {
+		position: absolute;
+		right: 0.4rem;
+		background: none;
+		border: none;
+		cursor: pointer;
+		color: inherit;
+		opacity: 0.5;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0.2rem;
+		transition: opacity 0.15s;
+	}
+	.clear-query-btn:hover {
+		opacity: 1;
 	}
 	.dark .search-form input { border-color: oklch(44.95% 0 none); }
 	.search-form button {
@@ -783,6 +873,14 @@
 		color: inherit;
 		cursor: pointer;
 		font-size: 0.875rem;
+		transition: all 0.2s;
+	}
+	.search-form .stop-btn {
+		color: #ef4444;
+		border-color: #ef4444;
+	}
+	.search-form .stop-btn:hover {
+		background: #ef44441a;
 	}
 	.dark .search-form button { border-color: oklch(44.95% 0 none); }
 	.search-progress {
@@ -830,6 +928,24 @@
 	}
 	.search-results li { border-bottom: 1px solid oklch(98% 0 none); }
 	.dark .search-results li { border-bottom-color: oklch(32.5% 0 none); }
+	
+	.search-chapter-header {
+		padding: 0.5rem 1rem;
+		background: oklch(98% 0 none);
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: oklch(50% 0 none);
+		position: sticky;
+		top: 0;
+		z-index: 5;
+		border-bottom: 1px solid oklch(90% 0 none);
+	}
+	.dark .search-chapter-header {
+		background: oklch(30% 0 none);
+		color: oklch(70% 0 none);
+		border-bottom-color: oklch(40% 0 none);
+	}
+
 	.search-results li.selected button {
 		background: oklch(57.05% 0.21 258.14deg / 0.15);
 	}

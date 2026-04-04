@@ -525,13 +525,14 @@ export class View extends HTMLElement {
         for (const { range, excerpt } of matcher(doc, query))
             yield { cfi: this.getCFI(index, range), excerpt }
     }
-    async * #searchBook(matcher, query) {
+    async * #searchBook(matcher, query, startIndex = 0) {
         const { sections } = this.book
         for (const [index, { createDocument }] of sections.entries()) {
+            if (index < startIndex) continue
             if (!createDocument) continue
             const doc = await createDocument()
             const subitems = Array.from(matcher(doc, query), ({ range, excerpt }) =>
-                ({ cfi: this.getCFI(index, range), excerpt }))
+                ({ cfi: this.getCFI(index, range), excerpt, index }))
             const progress = (index + 1) / sections.length
             yield { progress }
             if (subitems.length) yield { index, subitems }
@@ -540,12 +541,12 @@ export class View extends HTMLElement {
     async * search(opts) {
         this.clearSearch()
         const { searchMatcher } = await import('./search.js')
-        const { query, index } = opts
+        const { query, index, startIndex } = opts
         const matcher = searchMatcher(textWalker,
             { defaultLocale: this.language, ...opts })
         const iter = index != null
             ? this.#searchSection(matcher, query, index)
-            : this.#searchBook(matcher, query)
+            : this.#searchBook(matcher, query, startIndex)
 
         const list = []
         this.#searchResults.set(index, list)
@@ -590,4 +591,6 @@ export class View extends HTMLElement {
     }
 }
 
-customElements.define('foliate-view', View)
+if (!customElements.get('foliate-view')) {
+    customElements.define('foliate-view', View)
+}
