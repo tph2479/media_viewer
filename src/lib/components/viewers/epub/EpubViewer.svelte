@@ -9,6 +9,9 @@
 		Moon,
 		ChevronLeft,
 		ChevronRight,
+		Type,
+		ALargeSmall,
+		MoveHorizontal,
 	} from 'lucide-svelte';
 
 	let { filePath, onClose }: { filePath: string; onClose?: () => void } = $props();
@@ -182,7 +185,8 @@
 		<!-- Right group -->
 		<div class="toolbar-group">
 			<!-- Font picker -->
-			<label class="select-wrapper" title="Font family">
+			<label class="select-icon-wrapper" title="Font family">
+				<span class="select-icon"><Type size={14} /></span>
 				<select
 					value={settings.fontFamily}
 					onchange={(e) => ctrl.setFont((e.target as HTMLSelectElement).value)}
@@ -194,7 +198,8 @@
 			</label>
 
 			<!-- Font size -->
-			<label class="select-wrapper" title="Font size">
+			<label class="select-icon-wrapper" title="Font size">
+				<span class="select-icon"><ALargeSmall size={16} /></span>
 				<select
 					value={settings.fontSize}
 					onchange={(e) => ctrl.setFontSize(Number((e.target as HTMLSelectElement).value))}
@@ -206,7 +211,8 @@
 			</label>
 
 			<!-- Content width -->
-			<label class="select-wrapper" title="Content width">
+			<label class="select-icon-wrapper" title="Content width">
+				<span class="select-icon"><MoveHorizontal size={16} /></span>
 				<select
 					value={settings.contentWidth}
 					onchange={(e) => ctrl.setContentWidth((e.target as HTMLSelectElement).value)}
@@ -449,7 +455,16 @@
 		background: oklch(57.05% 0.21 258.14deg / 0.15);
 		border-color: oklch(57.05% 0.21 258.14deg / 0.3);
 	}
-	.select-wrapper select {
+	/* ── Select with icon wrapper ────────────────── */
+	.select-icon-wrapper {
+		position: relative;
+		display: inline-flex;
+		align-items: center;
+	}
+	.select-icon {
+		display: none;
+	}
+	.select-icon-wrapper select {
 		background: transparent;
 		border: 1px solid oklch(71.22% 0 none);
 		border-radius: 6px;
@@ -458,15 +473,15 @@
 		color: inherit;
 		cursor: pointer;
 	}
-	.select-wrapper select option {
+	.select-icon-wrapper select option {
 		background: oklch(100% 0 none);
 		color: oklch(18.22% 0 none);
 	}
-	.dark .select-wrapper select {
+	.dark .select-icon-wrapper select {
 		border-color: oklch(44.95% 0 none);
 		color: oklch(100% 0 none);
 	}
-	.dark .select-wrapper select option {
+	.dark .select-icon-wrapper select option {
 		background: oklch(32.5% 0 none);
 		color: oklch(100% 0 none);
 	}
@@ -725,12 +740,41 @@
 		}
 		.toolbar-group {
 			gap: 0.25rem;
+			flex-wrap: wrap;
+			justify-content: center;
 		}
 		.book-title {
 			display: none;
 		}
-		.select-wrapper {
-			display: none;
+		.select-icon-wrapper {
+			position: relative;
+			width: 32px;
+			height: 28px;
+			justify-content: center;
+			border: 1px solid transparent;
+			border-radius: 6px;
+			transition: background 0.15s, border-color 0.15s;
+		}
+		.select-icon-wrapper:hover,
+		.select-icon-wrapper:active {
+			background: oklch(57.05% 0.21 258.14deg / 0.15);
+			border-color: oklch(57.05% 0.21 258.14deg / 0.3);
+		}
+		.select-icon {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			pointer-events: none;
+			color: inherit;
+		}
+		.select-icon-wrapper select {
+			position: absolute;
+			inset: 0;
+			opacity: 0;
+			width: 100%;
+			height: 100%;
+			cursor: pointer;
+			font-size: 16px; /* prevent iOS zoom */
 		}
 		.icon-btn {
 			width: 28px;

@@ -60,6 +60,7 @@ export function createEpubViewerState(filePath: string) {
 		isSearchOpen: false,
 		isControlsVisible: false,
 		controlsHideTimer: null as ReturnType<typeof setTimeout> | null,
+		isMobile: typeof window !== 'undefined' && window.innerWidth <= 640,
 	});
 
 	// ── Book metadata (populated after open) ─────────────────────────────────
@@ -82,7 +83,15 @@ export function createEpubViewerState(filePath: string) {
 		fontFamily: 'inherit',
 		fontSize: 18,
 		lineSpacing: 1.6,
-		contentWidth: '80', // Default width to 80% (10% each side)
+		contentWidthDesktop: '80', // Default width to 80% on desktop
+		contentWidthMobile: '100', // Default width to 100% on mobile
+		get contentWidth() {
+			return ui.isMobile ? this.contentWidthMobile : this.contentWidthDesktop;
+		},
+		set contentWidth(val: string) {
+			if (ui.isMobile) this.contentWidthMobile = val;
+			else this.contentWidthDesktop = val;
+		}
 	});
 
 	function initThemeSync() {
@@ -169,16 +178,20 @@ export function createEpubViewerState(filePath: string) {
 		// Use foliate's native max-inline-size attribute to control content width.
 		// This sets the columnWidth used in scrolled mode and lets foliate handle
 		// both the body max-width AND iframe height calculation properly.
-		const isMobile = typeof window !== 'undefined' && window.innerWidth <= 640;
-		const pct = isMobile ? 100 : Number(settings.contentWidth);
+		const pct = Number(settings.contentWidth);
 		const containerWidth = containerEl?.getBoundingClientRect().width ?? window.innerWidth;
 		const maxWidth = Math.round(containerWidth * pct / 100);
 		renderer.setAttribute('max-inline-size', `${maxWidth}px`);
+		// Remove foliate's default 7% gap and 48px margin so only our body
+		// padding (1.5rem each side) provides spacing.
+		renderer.setAttribute('gap', '0%');
+		renderer.setAttribute('margin', '0px');
 	}
 
 	function setupResizeHandler() {
 		let timer: ReturnType<typeof setTimeout>;
 		const handler = () => {
+			ui.isMobile = typeof window !== 'undefined' && window.innerWidth <= 640;
 			clearTimeout(timer);
 			timer = setTimeout(() => applyStyles(), 100);
 		};
